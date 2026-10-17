@@ -260,6 +260,15 @@ export class Sound {
     this.thud(Math.min(0.8, 0.25 + v * 0.6));
   }
   item() { [988, 1319, 1760, 2349].forEach((f, i) => setTimeout(() => this.tone(f, 0.12, 0.1, 'square'), i * 45)); }
+  // a vent of compressed air: "pshh" (band-passed noise, fast attack, airy tail)
+  psh(vol = 0.2, dur = 0.22) {
+    if (!this.ctx) return;
+    const c = this.ctx, t = c.currentTime, n = c.createBufferSource(), bp = c.createBiquadFilter(), hp = c.createBiquadFilter(), g = c.createGain();
+    n.buffer = this.noiseBuf; bp.type = 'bandpass'; bp.Q.value = 0.8; bp.frequency.setValueAtTime(5200 + Math.random() * 1500, t); bp.frequency.exponentialRampToValueAtTime(2600, t + dur);
+    hp.type = 'highpass'; hp.frequency.value = 900;
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + 0.008); g.gain.setValueAtTime(vol * 0.8, t + dur * 0.3); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    n.connect(bp); bp.connect(hp); hp.connect(g); g.connect(this.master); n.start(t, Math.random()); n.stop(t + dur + 0.05);
+  }
   chime() { this.tone(1318, 0.25, 0.14, 'sine'); setTimeout(() => this.tone(1976, 0.3, 0.12, 'sine'), 70); }
   thud(v = 0.4) {
     if (!this.ctx) return;

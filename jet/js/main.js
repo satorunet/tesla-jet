@@ -624,6 +624,50 @@ function simulate(dt, inp) {
   for (const o of world.orbs) if (o.cool <= 0 && me.pos.distanceToSquared(o.c) < 6) { o.cool = 8; me.energy = Math.min(1, me.energy + 0.12); sound.tone(1568 + Math.random() * 200, 0.08, 0.06, 'sine'); }
   if (session && started && session.phase === 'race' && session.me.racing && session.me.fin === null) myProg.update(me.pos.x, me.pos.y, me.pos.z, session.now());
 }
+// compressed-air vents: puffs (and a "pshh") while slowing hard, a big blow-off when coming to a stop
+const STM = 60, steam = [];
+const stmMat = new THREE.SpriteMaterial({ map: radialTex(), color: 0xeef4ff, transparent: true, opacity: 0, depthWrite: false });
+for (let i = 0; i < STM; i++) { const sp = new THREE.Sprite(stmMat.clone()); sp.visible = false; scene.add(sp); steam.push({ sp, v: new THREE.Vector3(), life: 0, max: 1, s0: 1 }); }
+const VENTS = [[0.85, 0.35, 1.2], [-0.85, 0.35, 1.2], [0.9, 0.3, -1.1], [-0.9, 0.3, -1.1]];   // car-local: left/right, front/rear (x = left)
+const _sv = new THREE.Vector3(), _so = new THREE.Vector3();
+let stmI = 0, puffT = 0, lastV = 0, fastV = 0;
+function puff(k, big = false) {
+  if (!myModel) return;
+  myModel.root.updateMatrixWorld();
+  for (const [x, y, z] of VENTS) {
+    if (!big && Math.random() < 0.35) continue;
+    for (let j = 0; j < (big ? 4 : 2); j++) {
+      const p = steam[stmI = (stmI + 1) % STM];
+      _sv.set(x, y - 0.55, z).applyMatrix4(myModel.root.matrixWorld);
+      _so.set(Math.sign(x) * (2 + Math.random() * 3), 0.6 + Math.random() * 1.4, (Math.random() - 0.5) * 2).applyQuaternion(me.quat);
+      p.sp.position.copy(_sv); p.v.copy(me.vel).multiplyScalar(0.8).add(_so.multiplyScalar(big ? 1.6 : 1));
+      p.life = p.max = (big ? 1.4 : 0.8) + Math.random() * 0.4; p.s0 = (big ? 1.4 : 0.8) * (0.6 + k * 0.6);
+      p.sp.visible = true;
+    }
+  }
+  sound.psh(big ? 0.32 : 0.12 + k * 0.12, big ? 0.7 : 0.18 + Math.random() * 0.1);
+}
+function updateSteam(dt) {
+  // detect hard slowing (on the road, not just turbo ending) and the moment you come to rest
+  const v = me.v, dv = (v - lastV) / Math.max(dt, 1e-3); lastV = v;
+  fastV = Math.max(v, fastV - dt * 15);
+  if (started && !replay && me.mode === 'track' && v > 6 && (dv < -18 || (input.brake && v > 12)) && me.sonic <= 0) {
+    puffT -= dt; if (puffT <= 0) { puff(Math.min(1, -dv / 60)); puffT = 0.16 + Math.random() * 0.18; }
+  } else puffT = Math.min(puffT, 0.05);
+  if (started && !replay && lastStopV > 5 && v <= 5 && fastV > 35) { puff(1, true); fastV = 0; }
+  lastStopV = v;
+  for (const p of steam) {
+    if (p.life <= 0) { if (p.sp.visible) p.sp.visible = false; continue; }
+    p.life -= dt; const f = 1 - p.life / p.max;
+    p.v.multiplyScalar(Math.exp(-dt * 2.2)); p.v.y += dt * 1.2;
+    p.sp.position.addScaledVector(p.v, dt);
+    p.sp.scale.setScalar(p.s0 * (1 + f * 5));
+    const dc = p.sp.position.distanceTo(camera.position);   // never fog the camera itself
+    p.sp.material.opacity = 0.42 * Math.sin(Math.min(1, f * 4) * Math.PI / 2) * (1 - f) * Math.max(0, Math.min(1, (dc - 3) / 7));
+  }
+}
+let lastStopV = 0;
+
 // recording of my run (for the replay of a ranked time): REC_HZ frames of [t ms, x, y, z (cm), quaternion (x1000), speed (x10), flags]
 const REC_HZ = 10;
 let rec = null, recT = 0;
@@ -762,7 +806,7 @@ function frameRest(now, dt) {
   world.update(dt, (now - t0) / 1000, camera.position);
   updateCamera(dt, started);
   updateSpeedLines(dt, me.speed, me.boosting || me.sonic > 0);
-  updateWaves(dt); updateSparks(dt);
+  updateWaves(dt); updateSparks(dt); updateSteam(dt);
   sound.update(me.speed, me.thrust, me.boosting, me.mode === 'air');
   sound.setMusic(replay || (session && (session.phase === 'race' || session.phase === 'count')) ? 1 : 0);
   composer.render(dt);
