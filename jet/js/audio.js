@@ -12,6 +12,7 @@ const DRUMS = {
   four:   { k: 'X...X...X...X...', s: '....X.......X...', h: 'x.O.x.O.x.O.x.Ox' },
   euro:   { k: 'X...X...X...X...', s: '....X.......X..x', h: 'xxOxxxOxxxOxxxOx' },
   brk:    { k: 'X.....X...X.....', s: '....X..x.x..X..x', h: 'x.xxx.xxx.xxx.xx' },
+  house:  { k: 'X...X...X...X...', s: '....X.......X...', h: 'x.O.x.O.x.O.x.Ox' },
 };
 // bass: x root, o octave, f fifth, - hold
 const BASS = {
@@ -21,6 +22,7 @@ const BASS = {
   reese:  'x-------x---x-x-',
   gallop: 'x.xo.xx.xo.xx.xo',
   drive:  'x.x.o.x.x.x.o.xf',
+  funk:   'x..o..x.-.x.o.xo',
 };
 const ARPS = {
   up:   '0123012301230123',
@@ -32,12 +34,23 @@ const ARPS = {
 const MINOR = [0, 2, 3, 5, 7, 8, 10], MAJOR = [0, 2, 4, 5, 7, 9, 11], DORIAN = [0, 2, 3, 5, 7, 9, 10], PHRYG = [0, 1, 3, 5, 7, 8, 10], HARM = [0, 2, 3, 5, 7, 8, 11];
 // lead hooks: 64 steps (4 bars) of scale degrees ('.' rest, '-' hold the previous note)
 const hook = (s) => { const a = s.trim().split(/\s+/).map((v) => (v === '.' ? null : v === '-' ? '-' : +v)); while (a.length < 64) a.push(null); return a.slice(0, 64); };
+// stage kits: the same engine, a different sound per stage
+//  sky   = outrun synthwave / eurobeat: warm saws, gated snare, punchy kick
+//  twist = dark space drum'n'bass: growling distorted reese, FM bells, deep kick, long reverb, sweeps
+//  ocean = sunny tropical house: steel-drum plucks, marimba arps, offbeat chord stabs, claps, swing
+//  neon  = cyberpunk breaks: distorted square bass and lead, metallic snare, stutter fills
+const KITS = {
+  sky:   { lead: 'saws', bass: 'saw', arp: 'square', pad: ['sawtooth', 'sawtooth'], padCut: 1900, rev: 0.3, kick: 'punch', snare: 'gated', swing: 0, fx: [] },
+  twist: { lead: 'wide', bass: 'reese', arp: 'bell', pad: ['sawtooth', 'triangle'], padCut: 800, rev: 0.5, kick: 'deep', snare: 'dnb', swing: 0, fx: ['sweep', 'drone'] },
+  ocean: { lead: 'steel', bass: 'round', arp: 'marimba', pad: ['triangle', 'triangle'], padCut: 2600, rev: 0.25, kick: 'soft', snare: 'clap', swing: 0.14, fx: ['stabs'] },
+  neon:  { lead: 'grit', bass: 'dist', arp: 'saw', pad: ['sawtooth', 'square'], padCut: 1100, rev: 0.18, kick: 'hard', snare: 'metal', swing: 0, fx: ['stutter'] },
+};
 const SONGS = {
   sky: [
-    { name: 'Sunset Overdrive', bpm: 172, key: 57, scale: MINOR, chords: prog('Am F C G'), drums: 'dnb', bass: 'reese', arp: 'trance',
+    { name: 'Sunset Overdrive', bpm: 158, key: 57, scale: MINOR, chords: prog('Am F C G'), drums: 'euro', bass: 'oct16', arp: 'trance',
       lead: hook(`7 - 9 - 10 - 9 - 7 - 11 - 12 - 11 - 9 - - - 7 - 8 - 9 - 11 - 12 - 14 -
                   14 - 12 - 11 - 9 - 11 - 12 - 11 - 9 - 7 - - - 8 - 9 - 11 - - - 7 - - -`) },
-    { name: 'Neon Horizon', bpm: 150, key: 52, scale: MINOR, chords: prog('Em C G D'), drums: 'euro', bass: 'oct16', arp: 'updn', leadWave: 'square',
+    { name: 'Neon Horizon', bpm: 150, key: 52, scale: MINOR, chords: prog('Em C G D'), drums: 'four', bass: 'oct16', arp: 'updn', leadWave: 'square',
       lead: hook(`7 . 7 8 9 . 9 . 11 . 10 . 9 . 8 . 7 . 7 8 9 . 11 . 12 . 11 . 9 - - -
                   12 . 12 11 12 . 14 . 12 . 11 . 9 . 11 . 12 - 11 - 9 - 8 - 7 - - - - - - -`) },
     { name: 'Cloud Rider', bpm: 160, key: 50, scale: HARM, chords: prog('Dm Bb F A'), drums: 'four', bass: 'gallop', arp: 'up',
@@ -48,32 +61,32 @@ const SONGS = {
     { name: 'Event Horizon', bpm: 176, key: 50, scale: PHRYG, chords: prog('Dm Eb Dm C'), drums: 'dnb2', bass: 'reese', arp: 'trance', bassCut: 300,
       lead: hook(`7 - - 8 - - 7 - 5 - 4 - 5 - 7 - 8 - - 10 - - 8 - 7 - 5 - 4 - . .
                   11 - - 12 - - 11 - 10 - 8 - 7 - 8 - 10 - 11 - 12 - 14 - 12 - 11 - 10 - 8 -`) },
-    { name: 'Zero Gravity', bpm: 168, key: 53, scale: MINOR, chords: prog('Fm Db Ab Eb'), drums: 'jungle', bass: 'roll', arp: 'updn', arpWave: 'sawtooth',
+    { name: 'Zero Gravity', bpm: 174, key: 53, scale: MINOR, chords: prog('Fm Db Ab Eb'), drums: 'jungle', bass: 'roll', arp: 'updn', arpWave: 'sawtooth',
       lead: hook(`7 - - - 9 - - - 10 - 12 - 10 - 9 - 7 - - - 5 - - - 7 - 9 - 7 - 5 -
                   10 - - - 12 - - - 14 - 12 - 10 - 9 - 10 - 9 - 7 - 5 - 7 - - - - - . .`) },
-    { name: 'Corkscrew', bpm: 174, key: 47, scale: MINOR, chords: prog('Bm G D A'), drums: 'dnb', bass: 'drive', arp: 'skip',
+    { name: 'Corkscrew', bpm: 178, key: 47, scale: PHRYG, chords: prog('Bm C Bm A'), drums: 'dnb', bass: 'reese', arp: 'skip',
       lead: hook(`7 8 9 . 9 . 8 . 7 . 5 . 7 - - - 9 10 11 . 11 . 10 . 9 . 8 . 7 - - -
                   11 12 14 . 14 . 12 . 11 . 9 . 11 - - - 12 - 11 - 9 - 8 - 7 - - - - - - -`) },
   ],
   ocean: [
-    { name: 'Blue Lagoon', bpm: 150, key: 48, scale: MAJOR, chords: prog('Am F C G'), drums: 'euro', bass: 'off', arp: 'trance', arpWave: 'sawtooth', leadWave: 'square',
+    { name: 'Blue Lagoon', bpm: 136, key: 48, scale: MAJOR, chords: prog('F G Em Am'), drums: 'house', bass: 'off', arp: 'trance', arpWave: 'sawtooth', leadWave: 'square',
       lead: hook(`9 - 9 - 11 - 12 - 11 - 9 - 7 - 9 - 9 - 11 - 12 - 14 - 12 - 11 - 9 -
                   12 - 12 - 14 - 16 - 14 - 12 - 11 - 12 - 11 - 9 - 7 - 9 - - - - - - -`) },
-    { name: 'Wave Surfer', bpm: 158, key: 53, scale: MAJOR, chords: prog('Dm Bb F C'), drums: 'four', bass: 'gallop', arp: 'up',
+    { name: 'Wave Surfer', bpm: 142, key: 53, scale: MAJOR, chords: prog('Bb C Am Dm'), drums: 'house', bass: 'funk', arp: 'up',
       lead: hook(`9 . 9 8 9 . 11 . 12 . 11 . 9 . 8 . 7 . 7 8 9 . 8 . 7 . 5 . 4 - - -
                   9 . 9 8 9 . 11 . 12 . 14 . 16 . 14 . 12 - 11 - 12 - 14 - 12 - - - - - - -`) },
-    { name: 'Trade Winds', bpm: 170, key: 50, scale: DORIAN, chords: prog('Dm C Bb C'), drums: 'brk', bass: 'drive', arp: 'skip', leadWave: 'triangle',
+    { name: 'Trade Winds', bpm: 130, key: 50, scale: DORIAN, chords: prog('Dm G Dm G'), drums: 'brk', bass: 'funk', arp: 'skip', leadWave: 'triangle',
       lead: hook(`7 - - 9 - 10 - 9 7 - - - 5 - 7 - 9 - - 10 - 12 - 10 9 - 7 - - - . .
                   12 - - 14 - 12 - 10 9 - - - 10 - 12 - 14 - - 12 - 10 - 9 7 - - - - - . .`) },
   ],
   neon: [
-    { name: 'Midnight Spiral', bpm: 178, key: 53, scale: MINOR, chords: prog('Fm Db Ab Eb'), drums: 'dnb', bass: 'reese', arp: 'trance', bassCut: 280,
+    { name: 'Midnight Spiral', bpm: 172, key: 53, scale: HARM, chords: prog('Fm Db Fm C'), drums: 'brk', bass: 'drive', arp: 'trance', bassCut: 280,
       lead: hook(`7 - - 7 - - 8 - 10 - - 8 - - 7 - 5 - - 5 - - 7 - 8 - 7 - 5 - 3 -
                   10 - - 10 - - 12 - 14 - - 12 - - 10 - 8 - - 10 - - 12 - 10 - - - . . . .`) },
-    { name: 'Chrome City', bpm: 152, key: 48, scale: HARM, chords: prog('Cm Ab Eb G'), drums: 'euro', bass: 'oct16', arp: 'updn', arpWave: 'sawtooth',
+    { name: 'Chrome City', bpm: 165, key: 48, scale: HARM, chords: prog('Cm Ab Eb G'), drums: 'dnb2', bass: 'oct16', arp: 'updn', arpWave: 'sawtooth',
       lead: hook(`7 - - - 7 - 8 - 7 - 5 - 3 - 6 - 7 - - - 7 - 8 - 10 - 11 - 12 - - -
                   14 - - - 12 - 11 - 12 - 10 - 8 - 7 - 8 - 7 - 6 - 7 - - - - - . . . .`) },
-    { name: 'Tower Rush', bpm: 166, key: 55, scale: MINOR, chords: prog('Gm Eb Bb F'), drums: 'jungle', bass: 'roll', arp: 'up',
+    { name: 'Tower Rush', bpm: 170, key: 55, scale: MINOR, chords: prog('Gm Eb Bb F'), drums: 'jungle', bass: 'roll', arp: 'up',
       lead: hook(`9 10 9 . 7 . 9 . 10 . 12 . 10 . 9 . 7 8 7 . 5 . 7 . 8 . 10 . 9 - - -
                   12 14 12 . 10 . 12 . 14 . 15 . 14 . 12 . 10 - 12 - 10 - 9 - 7 - - - - -`) },
   ],
@@ -117,7 +130,10 @@ export class Sound {
     // reverb: a synthetic decaying-noise impulse
     const len = c.sampleRate * 1.6, ir = c.createBuffer(2, len, c.sampleRate);
     for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3); }
-    this.rev = c.createConvolver(); this.rev.buffer = ir; const rg = c.createGain(); rg.gain.value = 0.22; this.rev.connect(rg); rg.connect(this.mG);
+    this.rev = c.createConvolver(); this.rev.buffer = ir; this.revG = c.createGain(); this.revG.gain.value = 0.22; this.rev.connect(this.revG); this.revG.connect(this.mG);
+    // drive bus: a soft clipper for the gritty parts
+    this.drive = c.createWaveShaper(); const cv = new Float32Array(1024); for (let i = 0; i < 1024; i++) cv[i] = Math.tanh((i / 512 - 1) * 4); this.drive.curve = cv;
+    const dg = c.createGain(); dg.gain.value = 0.45; this.drive.connect(dg); dg.connect(this.pump);
     // tempo-synced echo
     this.dly = c.createDelay(1);
     const fb = c.createGain(); fb.gain.value = 0.3; const dl = c.createBiquadFilter(); dl.type = 'lowpass'; dl.frequency.value = 3000;
@@ -155,65 +171,98 @@ export class Sound {
     const k = (b - 4) % 24; return k < 16 ? 'drop' : k < 20 ? 'break' : 'build';
   }
   playStep(s16, t, sp) {
-    const S = this.song, sec = this.section(), bar = this.bar, inSec = sec === 'drop' ? (bar - 4) % 24 : sec === 'break' ? (bar - 20) % 24 : bar < 4 ? bar : (bar - 24) % 24;
+    const S = this.song, K = KITS[this.stage] || KITS.sky, sec = this.section(), bar = this.bar;
+    const inSec = sec === 'drop' ? (bar - 4) % 24 : sec === 'break' ? (bar - 20) % 24 : bar < 4 ? bar : (bar - 24) % 24;
     const ch = S.chords[bar % S.chords.length], root = ch[0] - 24;
     const hz = (m) => 440 * Math.pow(2, (m - 69) / 12);
     const on = (pat) => pat && pat[s16] !== '.';
     const lobby = this.lvlS < 0.5;
+    if (s16 === 0) this.revG.gain.value = K.rev;
+    if (K.swing && s16 % 2) t += sp * K.swing;
     // ---- drums
     const D = DRUMS[S.drums];
     if (sec === 'drop') {
       if (s16 === 0 && inSec % 8 === 0) this.crash(t);
-      if (on(D.k)) this.kick(t, D.k[s16] === 'X' ? 1 : 0.8);
-      if (on(D.s)) this.snare(t, D.s[s16] === 'X' ? 0.55 : 0.18);
+      if (on(D.k)) this.kick(t, D.k[s16] === 'X' ? 1 : 0.8, K.kick);
+      if (on(D.s)) this.snare(t, D.s[s16] === 'X' ? 0.55 : 0.18, K.snare);
       if (on(D.h)) this.hat(t, D.h[s16] === 'O' ? 0.07 : 0.045, D.h[s16] === 'O' ? 0.16 : 0.03);
-      if (inSec % 8 === 7 && s16 >= 12) this.snare(t, 0.2 + (s16 - 12) * 0.08);
+      const fill = inSec % 8 === 7;
+      if (fill && K.fx.includes('stutter') && s16 >= 8) { this.snare(t, 0.15 + (s16 - 8) * 0.04, K.snare); this.hat(t + sp / 2, 0.05, 0.02); this.hat(t + sp / 4, 0.04, 0.015); }
+      else if (fill && s16 >= 12) this.snare(t, 0.2 + (s16 - 12) * 0.08, K.snare);
     } else if (sec === 'build') {
       const prog4 = Math.min(3, inSec);
-      if (s16 % 4 === 0) this.kick(t, 0.7);
-      // snare roll: quarters -> 8ths -> 16ths, rising
+      if (s16 % 4 === 0) this.kick(t, 0.7, K.kick);
       const every = prog4 < 2 ? 4 : prog4 < 3 ? 2 : 1;
-      if (s16 % every === 0) this.snare(t, 0.12 + (prog4 * 16 + s16) / 64 * 0.4);
+      if (s16 % every === 0) this.snare(t, 0.12 + (prog4 * 16 + s16) / 64 * 0.4, K.snare);
       if (s16 % 2 === 1) this.hat(t, 0.035, 0.03);
       if (s16 === 0 && prog4 === 0) this.riser(t, sp * 64);
     } else {
-      if (!lobby && s16 === 0 && inSec === 0) this.crash(t, 0.5);
+      if (!lobby && s16 === 0 && inSec === 0) { this.crash(t, 0.5); if (K.fx.includes('sweep')) this.sweep(t, sp * 64); }
       if (s16 % 4 === 2) this.hat(t, lobby ? 0.03 : 0.04, 0.03);
-      if (lobby && s16 % 8 === 0) this.kick(t, 0.4);
+      if (lobby && s16 % 8 === 0) this.kick(t, 0.4, K.kick);
+      if (K.fx.includes('drone') && s16 === 0) this.voice(['sine', 'sine'], [-5, 5], hz(root - 12), t, sp * 16, 0.08, 300, { att: 0.3, rel: 0.5, slow: true });
     }
-    // ---- bass (pumped)
+    // ---- bass (pumped), voiced per kit
     const B = BASS[S.bass];
-    if (sec !== 'break' || lobby) {
-      if (on(B) && B[s16] !== '-') {
-        const oct = B[s16] === 'o' ? 12 : B[s16] === 'f' ? 7 : 0;
-        let len = 1; while (B[(s16 + len) % 16] === '-' && len < 8) len++;
-        const cut = (S.bassCut || 420) + (sec === 'drop' ? 900 : sec === 'build' ? 300 + inSec * 200 : 0);
-        this.voice(['sawtooth', 'sawtooth'], [-9, 9], hz(root + oct), t, sp * len * 0.95, lobby ? 0.08 : 0.12, cut, { q: 6, env: 2.4, att: 0.004 });
-        if (sec === 'drop') this.voice(['sine'], [0], hz(root + oct - 12), t, sp * len * 0.95, 0.16, 400, { att: 0.004 });
-      }
+    if ((sec !== 'break' || lobby) && on(B) && B[s16] !== '-') {
+      const oct = B[s16] === 'o' ? 12 : B[s16] === 'f' ? 7 : 0, f = hz(root + oct);
+      let len = 1; while (B[(s16 + len) % 16] === '-' && len < 8) len++;
+      const dur = sp * len * 0.95, open = sec === 'drop' ? 1 : sec === 'build' ? 0.3 + inSec * 0.15 : 0, v = lobby ? 0.08 : 0.12;
+      const cut = (S.bassCut || 420) + open * 900;
+      if (K.bass === 'reese') this.voice(['sawtooth', 'sawtooth', 'sawtooth'], [-22, 0, 19], f, t, dur, v * 0.9, cut + 300, { q: 8, env: 3, att: 0.004, dist: true });
+      else if (K.bass === 'dist') this.voice(['square', 'sawtooth'], [-7, 7], f, t, dur, v * 0.8, cut + 500, { q: 5, env: 2.6, att: 0.003, dist: true });
+      else if (K.bass === 'round') this.voice(['triangle', 'sine'], [0, 0], f * 2, t, dur, v * 1.3, 1200, { att: 0.004, pluck: 0.22 });
+      else this.voice(['sawtooth', 'sawtooth'], [-9, 9], f, t, dur, v, cut, { q: 6, env: 2.4, att: 0.004 });
+      if (sec === 'drop' && K.bass !== 'round') this.voice(['sine'], [0], f / 2, t, dur, 0.16, 400, { att: 0.004 });
     }
-    // ---- pad: chord per bar, wide and soft
-    if (s16 === 0) for (const m of ch) this.voice(['sawtooth', 'sawtooth'], [-12, 12], hz(m), t, sp * 16, sec === 'break' ? 0.03 : 0.018, sec === 'drop' ? 2400 : 1400, { att: 0.25, rel: 0.6, slow: true, rev: true });
+    // ---- pad: chord per bar
+    if (s16 === 0) for (const m of ch) this.voice(K.pad, [-12, 12], hz(m), t, sp * 16, sec === 'break' ? 0.03 : 0.018, sec === 'drop' ? K.padCut * 1.4 : K.padCut, { att: 0.25, rel: 0.6, slow: true, rev: true });
     if (lobby) return;
-    // ---- arpeggio (filter opens through the build)
+    // ---- offbeat chord stabs (tropical)
+    if (K.fx.includes('stabs') && sec === 'drop' && s16 % 4 === 2) for (const m of ch) this.voice(['triangle', 'square'], [0, 7], hz(m + 12), t, sp, 0.016, 3000, { pluck: 0.12, rev: true });
+    // ---- arpeggio
     const A = ARPS[S.arp];
     if (A[s16] !== '.') {
       const tones = [ch[0] + 12, ch[1] + 12, ch[2] + 12, ch[0] + 24, ch[1] + 24];
-      const cut = sec === 'build' ? 900 + (inSec * 16 + s16) * 50 : sec === 'drop' ? 4200 : 2200;
-      if (A[s16] === 'c') for (const m of ch) this.voice([S.arpWave || 'square'], [0], hz(m + 12), t, sp * 0.9, 0.022, cut, { echo: true });
-      else this.voice([S.arpWave || 'square'], [0], hz(tones[+A[s16]]), t, sp * 0.8, sec === 'drop' ? 0.03 : 0.024, cut, { echo: true, env: 1.6 });
+      const cut = sec === 'build' ? 900 + (inSec * 16 + s16) * 50 : sec === 'drop' ? 4200 : 2200, v = sec === 'drop' ? 0.03 : 0.024;
+      const notes = A[s16] === 'c' ? ch.map((m) => m + 12) : [tones[+A[s16]]];
+      for (const m of notes) {
+        if (K.arp === 'bell') this.bell(hz(m + 12), t, v * 1.2);
+        else if (K.arp === 'marimba') this.voice(['sine', 'triangle'], [0, 1200], hz(m + 12), t, sp, v * 1.4, 4000, { pluck: 0.16, echo: true });
+        else if (K.arp === 'saw') this.voice(['sawtooth'], [0], hz(m), t, sp * 0.7, v, cut, { echo: true, env: 2, dist: sec === 'drop' });
+        else this.voice(['square'], [0], hz(m), t, sp * 0.8, v, cut, { echo: true, env: 1.6 });
+      }
     }
-    // ---- lead: supersaw hook in the drop (an octave up on its second half), softly in the break
+    // ---- lead in the drop (an octave up on its second half), softly in the break
     if (sec === 'drop' || sec === 'break') {
       const i = (inSec % 4) * 16 + s16, L = S.lead[i];
       if (L !== null && L !== undefined && L !== '-') {
         let len = 1; while (S.lead[(i + len) % 64] === '-' && len < 16) len++;
         const scale = S.scale || MINOR, up = sec === 'drop' && inSec >= 8 ? 12 : 0;
-        const m = S.key + 12 + up + Math.floor(L / 7) * 12 + scale[((L % 7) + 7) % 7];
-        if (S.leadWave === 'square' || S.leadWave === 'triangle') this.voice([S.leadWave, S.leadWave], [-6, 6], hz(m), t, sp * len, sec === 'drop' ? 0.05 : 0.03, 3600, { echo: true, rev: true, vib: true });
-        else this.voice(['sawtooth', 'sawtooth', 'sawtooth'], [-16, 0, 16], hz(m), t, sp * len, sec === 'drop' ? 0.042 : 0.026, 4200, { echo: true, rev: true, vib: true, att: 0.008 });
+        const m = S.key + 12 + up + Math.floor(L / 7) * 12 + scale[((L % 7) + 7) % 7], f = hz(m), dur = sp * len, v = sec === 'drop' ? 1 : 0.6;
+        if (K.lead === 'steel') { this.voice(['sine', 'sine', 'triangle'], [0, 1200 * Math.log2(2.76), 1200], f, t, dur, 0.06 * v, 5000, { pluck: 0.5, echo: true, rev: true }); }
+        else if (K.lead === 'grit') this.voice(['square', 'square'], [-10, 10], f, t, dur, 0.035 * v, 3200, { echo: true, vib: true, dist: true, att: 0.004 });
+        else if (K.lead === 'wide') this.voice(['sawtooth', 'sawtooth', 'sawtooth', 'sawtooth'], [-28, -9, 9, 28], f, t, dur, 0.032 * v, 3000, { echo: true, rev: true, vib: true, att: 0.02 });
+        else this.voice(['sawtooth', 'sawtooth', 'sawtooth'], [-16, 0, 16], f, t, dur, 0.042 * v, 4200, { echo: true, rev: true, vib: true, att: 0.008 });
       }
     }
+  }
+  // FM bell: a sine carrier with a decaying inharmonic modulator
+  bell(f, t, vol) {
+    const c = this.ctx, car = c.createOscillator(), mod = c.createOscillator(), mg = c.createGain(), g = c.createGain();
+    car.frequency.value = f; mod.frequency.value = f * 3.5;
+    mg.gain.setValueAtTime(f * 2.5, t); mg.gain.exponentialRampToValueAtTime(f * 0.05, t + 0.7);
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.2);
+    mod.connect(mg); mg.connect(car.frequency); car.connect(g); g.connect(this.pump); g.connect(this.dly); g.connect(this.rev);
+    car.start(t); mod.start(t); car.stop(t + 1.25); mod.stop(t + 1.25);
+  }
+  // a long filtered-noise fall (space breaks)
+  sweep(t, dur) {
+    const c = this.ctx, n = c.createBufferSource(), bp = c.createBiquadFilter(), g = c.createGain();
+    n.buffer = this.noiseBuf; n.loop = true; bp.type = 'bandpass'; bp.Q.value = 6;
+    bp.frequency.setValueAtTime(6000, t); bp.frequency.exponentialRampToValueAtTime(200, t + dur);
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.08, t + dur * 0.2); g.gain.linearRampToValueAtTime(0.0001, t + dur);
+    n.connect(bp); bp.connect(g); g.connect(this.rev); g.connect(this.mG); n.start(t); n.stop(t + dur + 0.05);
   }
   // a synth voice: detuned oscillators -> low-pass with an envelope -> amp -> pumped bus (+ echo / reverb sends)
   voice(waves, detune, f, t, dur, vol, cut, o = {}) {
@@ -223,21 +272,23 @@ export class Sound {
     else { lp.frequency.setValueAtTime(cut * (o.env || 1.8), t); lp.frequency.exponentialRampToValueAtTime(Math.max(80, cut * 0.45), t + Math.max(0.05, dur)); }
     const att = o.att ?? 0.01, rel = o.rel ?? 0.06;
     g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + att);
-    g.gain.setValueAtTime(vol, t + Math.max(att, dur - rel)); g.gain.exponentialRampToValueAtTime(0.0001, t + dur + rel);
+    if (o.pluck) { g.gain.exponentialRampToValueAtTime(0.0001, t + att + o.pluck); dur = Math.min(dur, att + o.pluck); }   // struck: decays on its own
+    else { g.gain.setValueAtTime(vol, t + Math.max(att, dur - rel)); g.gain.exponentialRampToValueAtTime(0.0001, t + dur + rel); }
     waves.forEach((w, k) => {
       const os = c.createOscillator(); os.type = w; os.frequency.value = f; os.detune.value = detune[k] || 0;
       if (o.vib) { const lfo = c.createOscillator(), lg = c.createGain(); lfo.frequency.value = 5.5; lg.gain.setValueAtTime(0, t); lg.gain.linearRampToValueAtTime(f * 0.006, t + Math.min(0.4, dur)); lfo.connect(lg); lg.connect(os.frequency); lfo.start(t); lfo.stop(t + dur + rel + 0.05); }
       os.connect(lp); os.start(t); os.stop(t + dur + rel + 0.05);
     });
-    lp.connect(g); g.connect(this.pump);
+    lp.connect(g); g.connect(o.dist ? this.drive : this.pump);
     if (o.echo) g.connect(this.dly);
     if (o.rev) g.connect(this.rev);
   }
-  kick(t, v) {
+  kick(t, v, kind = 'punch') {
     const c = this.ctx, o = c.createOscillator(), g = c.createGain();
-    o.frequency.setValueAtTime(190, t); o.frequency.exponentialRampToValueAtTime(48, t + 0.09);
-    g.gain.setValueAtTime(v * 1.1, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.32);
-    o.connect(g); g.connect(this.mG); o.start(t); o.stop(t + 0.34);
+    const [f0, f1, dec, amp] = { punch: [190, 48, 0.32, 1.1], deep: [150, 38, 0.5, 1.15], soft: [130, 52, 0.26, 0.8], hard: [230, 44, 0.3, 1.2] }[kind] || [190, 48, 0.32, 1.1];
+    o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + 0.09);
+    g.gain.setValueAtTime(v * amp, t); g.gain.exponentialRampToValueAtTime(0.001, t + dec);
+    o.connect(g); g.connect(kind === 'hard' ? this.drive : this.mG); o.start(t); o.stop(t + dec + 0.02);
     // click on top
     const n = c.createBufferSource(), hp = c.createBiquadFilter(), ng = c.createGain();
     n.buffer = this.noiseBuf; hp.type = 'highpass'; hp.frequency.value = 2500; ng.gain.setValueAtTime(v * 0.35, t); ng.gain.exponentialRampToValueAtTime(0.001, t + 0.012);
@@ -245,11 +296,18 @@ export class Sound {
     // side-chain: duck the melodic bus and let it swell back
     const p = this.pump.gain; p.cancelScheduledValues(t); p.setValueAtTime(0.3, t); p.linearRampToValueAtTime(1, t + 0.22);
   }
-  snare(t, v) {
-    const c = this.ctx, n = c.createBufferSource(), bp = c.createBiquadFilter(), g = c.createGain();
-    n.buffer = this.noiseBuf; bp.type = 'bandpass'; bp.frequency.value = 2200; bp.Q.value = 0.6;
-    g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
-    n.connect(bp); bp.connect(g); g.connect(this.mG); g.connect(this.rev); n.start(t, Math.random()); n.stop(t + 0.2);
+  snare(t, v, kind = 'dnb') {
+    const c = this.ctx;
+    if (kind === 'clap') {        // three quick hand-clap bursts
+      for (const d of [0, 0.011, 0.023]) { const n = c.createBufferSource(), bp = c.createBiquadFilter(), g = c.createGain(); n.buffer = this.noiseBuf; bp.type = 'bandpass'; bp.frequency.value = 1500; bp.Q.value = 1.2; g.gain.setValueAtTime(v * 0.8, t + d); g.gain.exponentialRampToValueAtTime(0.001, t + d + (d > 0.02 ? 0.16 : 0.03)); n.connect(bp); bp.connect(g); g.connect(this.mG); g.connect(this.rev); n.start(t + d, Math.random()); n.stop(t + d + 0.2); }
+      return;
+    }
+    const n = c.createBufferSource(), bp = c.createBiquadFilter(), g = c.createGain();
+    n.buffer = this.noiseBuf; bp.type = 'bandpass'; bp.frequency.value = kind === 'metal' ? 3400 : 2200; bp.Q.value = kind === 'metal' ? 4 : 0.6;
+    const len = kind === 'gated' ? 0.26 : 0.18;
+    g.gain.setValueAtTime(v, t); if (kind === 'gated') { g.gain.setValueAtTime(v * 0.7, t + 0.2); g.gain.linearRampToValueAtTime(0.001, t + len); } else g.gain.exponentialRampToValueAtTime(0.001, t + len);
+    n.connect(bp); bp.connect(g); g.connect(this.mG); g.connect(this.rev); if (kind === 'gated') g.connect(this.rev); n.start(t, Math.random()); n.stop(t + len + 0.02);
+    if (kind === 'metal') { const r = c.createOscillator(), rg = c.createGain(); r.type = 'square'; r.frequency.value = 1830; rg.gain.setValueAtTime(v * 0.12, t); rg.gain.exponentialRampToValueAtTime(0.001, t + 0.09); r.connect(rg); rg.connect(this.drive); r.start(t); r.stop(t + 0.1); }
     const o = c.createOscillator(), og = c.createGain(); o.type = 'triangle'; o.frequency.setValueAtTime(240, t); o.frequency.exponentialRampToValueAtTime(150, t + 0.07);
     og.gain.setValueAtTime(v * 0.6, t); og.gain.exponentialRampToValueAtTime(0.001, t + 0.1); o.connect(og); og.connect(this.mG); o.start(t); o.stop(t + 0.12);
   }
