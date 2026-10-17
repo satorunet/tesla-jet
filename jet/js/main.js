@@ -354,7 +354,7 @@ function big(a, b, dur = 1) {
 function onEvent(type, d) {
   if (type === 'room') {
     if (session.phase === 'count' && d?.prev !== 'count') { toGrid(session.me.slot); me.hold = true; setMyColor(session.me.col); if (session.raceNo = (session.raceNo || 0) + 1, session.raceNo > 1) sound.pickSong(tr.id); }
-    if (session.phase === 'race' && d?.prev === 'count') { me.hold = false; big('GO!', '', 1.1); sound.tone(1320, 0.45, 0.1, 'triangle'); myProg.lapStart = session.startAt; }
+    if (session.phase === 'race' && d?.prev === 'count') { me.hold = false; big('GO!', '', 1.1); sound.tone(1320, 0.5, 0.2); myProg.lapStart = session.startAt; }
     if (session.phase === 'wait') { if (d?.prev === 'result') toGrid(Math.floor(Math.random() * 8)); me.hold = false; setMyColor(session.me.col); }
     renderPanel();
   } else if (type === 'lap') {
@@ -592,7 +592,7 @@ function simulate(dt, inp) {
   // events from the machine
   while (me.events.length) {
     const ev = me.events.shift();
-    if (ev === 'pad') { flash('BOOST!', 0.8); sound.whoosh(0.09); cam.shake = 0.25; }
+    if (ev === 'pad') { flash('BOOST!', 0.8); sound.tone(880, 0.12, 0.15); cam.shake = 0.25; }
     else if (ev === 'wall') { cam.shake = 0.35; sound.thud(0.25); }
     else if (ev === 'hard') { flash(L('ハードランディング', 'HARD LANDING')); cam.shake = 0.8; sound.thud(0.6); }
     else if (ev === 'land') { cam.shake = 0.3; sound.thud(0.3); }
@@ -603,7 +603,7 @@ function simulate(dt, inp) {
   // rings: pass through for a speed burst
   for (const r of world.rings) {
     const d = _cl.copy(me.pos).sub(r.c), along = d.dot(r.T);
-    if (Math.abs(along) < 3 && d.length() < r.r && r.hit <= 0) { r.hit = 1.2; me.v = Math.max(me.v, Math.min(260, me.v * (r.gate ? 1.14 : 1.18))); me.energy = Math.min(1, me.energy + 0.2); flash(r.gate ? 'DASH!' : 'RING +', 0.8); sound.ring(); cam.shake = 0.2; }
+    if (Math.abs(along) < 3 && d.length() < r.r && r.hit <= 0) { r.hit = 1.2; me.v = Math.max(me.v, Math.min(260, me.v * (r.gate ? 1.14 : 1.18))); me.energy = Math.min(1, me.energy + 0.2); flash(r.gate ? 'DASH!' : 'RING +', 0.8); sound.chime(); cam.shake = 0.2; }
   }
   // item boxes: a random speed item; JET orbs: energy
   for (const b of world.boxes) if (b.cool <= 0 && me.pos.distanceToSquared(b.c) < 7) {
@@ -616,7 +616,7 @@ function simulate(dt, inp) {
   for (const q of world.nitros) if (q.cool <= 0 && me.nitro < NITRO_MAX && me.pos.distanceToSquared(q.c) < 9) {
     q.cool = 6; me.nitro++; flash(`NITRO +1  (${me.nitro}/${NITRO_MAX})`, 1.2); sound.item();
   }
-  for (const o of world.orbs) if (o.cool <= 0 && me.pos.distanceToSquared(o.c) < 6) { o.cool = 8; me.energy = Math.min(1, me.energy + 0.12); sound.soft(1760 + Math.random() * 300, 0.1, 0.025); }
+  for (const o of world.orbs) if (o.cool <= 0 && me.pos.distanceToSquared(o.c) < 6) { o.cool = 8; me.energy = Math.min(1, me.energy + 0.12); sound.tone(1568 + Math.random() * 200, 0.08, 0.06, 'sine'); }
   if (session && started && session.phase === 'race' && session.me.racing && session.me.fin === null) myProg.update(me.pos.x, me.pos.y, me.pos.z, session.now());
 }
 // recording of my run (for the replay of a ranked time): REC_HZ frames of [t ms, x, y, z (cm), quaternion (x1000), speed (x10), flags]
@@ -752,7 +752,7 @@ function frameRest(now, dt) {
   // countdown
   if (session && (session.phase === 'count')) {
     const s = Math.ceil((session.startAt - session.now()) / 1000);
-    if (s !== frame.lastBeep && s >= 1 && s <= 3) { frame.lastBeep = s; big(String(s), '', 0.9); sound.tone(660, 0.22, 0.09, 'triangle'); }
+    if (s !== frame.lastBeep && s >= 1 && s <= 3) { frame.lastBeep = s; big(String(s), '', 0.9); sound.tone(660, 0.25, 0.18); }
   } else frame.lastBeep = -1;
   world.update(dt, (now - t0) / 1000, camera.position);
   updateCamera(dt, started);
