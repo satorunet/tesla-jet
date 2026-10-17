@@ -93,7 +93,7 @@ body.touch #spd{font-size:64px}body.touch #ebar{width:150px}
 .p-note{font-size:11px;color:var(--dim);line-height:1.5;margin-top:8px}
 .p-bt{font:700 11px Orbitron;letter-spacing:.2em;color:var(--dim);margin:12px 0 4px}
 .p-x{position:absolute;right:10px;top:10px;width:28px;height:28px;border-radius:50%;border:1px solid var(--line);background:none;color:var(--ink);cursor:pointer;padding:0}
-.p-cols{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.p-cols{display:grid;grid-template-columns:1fr;gap:4px}
 @media (max-width:640px){
   #h-top{padding:6px 12px 6px 10px;gap:0 10px}#h-pos{font-size:40px}#h-time{font-size:20px}
   #map{width:110px;height:110px}#tools{top:calc(max(12px,env(safe-area-inset-top)) + 120px)}
@@ -188,3 +188,4 @@ body.touch #spec{bottom:calc(max(18px,env(safe-area-inset-bottom)) + 150px)}
 #hud.spectating #b-jet,#hud.spectating #nitro,#hud.spectating #ebar,#hud.spectating .elbl,#hud.spectating #stick,#hud.spectating #h-best{display:none!important}
 #stage-best q,#rp-info q{display:inline-block;max-width:16em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom}
 .rk-link svg,.rp-btns svg{display:block;margin:auto}
+.p-cols>div{min-width:0}.p-cols .p-list li{min-width:0}.p-cols .nm{min-width:0}
