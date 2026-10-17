@@ -499,7 +499,30 @@ function frame(now) {
 // car-to-car contact: boxes in the course frame (4.4 m long, 2 m wide). Side contact shoves you sideways, nose-to-tail
 // contact trades speed (the one behind is held back, the one in front is shoved on). Each client pushes its own car;
 // in solo the CPUs get shoved too.
-const _bf = {}, _bd = new THREE.Vector3();
+const _bf = {}, _bd = new THREE.Vector3(), _kz = new THREE.Vector3(0, 0, 1), _kx = new THREE.Vector3(1, 0, 0);
+// sparks: a small pool of additive points flung out from a contact
+const SPK = 48, spkPos = new Float32Array(SPK * 3), spkVel = new Float32Array(SPK * 3), spkLife = new Float32Array(SPK);
+const spkGeo = new THREE.BufferGeometry(); spkGeo.setAttribute('position', new THREE.BufferAttribute(spkPos, 3));
+const spkPts = new THREE.Points(spkGeo, new THREE.PointsMaterial({ color: new THREE.Color(2.6, 1.6, 0.6), size: 0.35, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
+spkPts.frustumCulled = false; scene.add(spkPts);
+let spkI = 0;
+function sparks(p, k) {
+  const n = Math.round(10 + k * 20);
+  for (let j = 0; j < n; j++) {
+    const i = spkI = (spkI + 1) % SPK;
+    spkPos.set([p.x, p.y + 0.4, p.z], i * 3);
+    spkVel.set([me.vel.x * 0.85 + (Math.random() - 0.5) * 18, (Math.random()) * 9, me.vel.z * 0.85 + (Math.random() - 0.5) * 18], i * 3);
+    spkLife[i] = 0.25 + Math.random() * 0.3;
+  }
+}
+function updateSparks(dt) {
+  for (let i = 0; i < SPK; i++) {
+    if (spkLife[i] <= 0) { spkPos[i * 3 + 1] = -1e5; continue; }
+    spkLife[i] -= dt; spkVel[i * 3 + 1] -= 20 * dt;
+    for (let j = 0; j < 3; j++) spkPos[i * 3 + j] += spkVel[i * 3 + j] * dt;
+  }
+  spkGeo.attributes.position.needsUpdate = true;
+}
 let bumpT = 0;
 function bumpCars(dt) {
   bumpT -= dt;
@@ -513,9 +536,9 @@ function bumpCars(dt) {
     const pl = 2.1 - Math.abs(lat), pa = 4.4 - Math.abs(along);
     if (pl <= 0 || pa <= 0 || Math.abs(up) > 1.8) continue;
     const sp = r.sp ?? me.v, bot = session?.bots?.find((b) => b.id === r.id);
-    let hard = 0;
+    let hard = 0, side = 0;
     if (pl * 2.1 < pa) {                       // side by side: shove apart
-      const sg = Math.sign(lat) || 1;
+      const sg = Math.sign(lat) || 1; side = sg;
       me.u += sg * pl * 0.6; hard = Math.abs(me.vu - sg * 6);
       me.vu = sg * Math.max(7, Math.abs(me.vu) * 0.6 + 5);
       if (bot) bot.u -= sg * pl * 0.6;
@@ -528,7 +551,15 @@ function bumpCars(dt) {
       me.s += pa * 0.5; me.v = Math.max(me.v, sp * 0.92);
       if (bot) bot.v = Math.min(bot.v, me.v * 0.95);
     }
-    if (bumpT <= 0 && hard > 2) { bumpT = 0.25; cam.shake = Math.min(0.9, 0.2 + hard * 0.02); sound.thud(Math.min(0.6, 0.2 + hard * 0.01)); }
+    // reaction: both cars heel / pitch, sparks fly, a clank (a soft scrape for light contact)
+    if (bumpT <= 0) {
+      const k = Math.min(1, 0.25 + hard * 0.035);
+      if (side) { me.tiltV += side * (3 + hard * 0.25); r.tiltV = (r.tiltV || 0) - side * (3 + hard * 0.25); }
+      else { const fr = along < 0 ? 1 : -1; me.pjV += fr * (2.5 + hard * 0.15); r.pjV = (r.pjV || 0) - fr * (2.5 + hard * 0.15); }
+      sparks(_bd.copy(me.pos).add(r.model.root.position).multiplyScalar(0.5), k);
+      bumpT = hard > 2 ? 0.25 : 0.12; cam.shake = Math.max(cam.shake, 0.15 + k * 0.6);
+      if (hard > 2) sound.crash(k); else sound.thud(0.18);
+    }
   }
 }
 
@@ -684,6 +715,12 @@ function frameRest(now, dt) {
       r.model.root.visible = sn - b[b.length - 1][0] < 3000;
       r.model.root.position.set(a[0] + (c[0] - a[0]) * u, a[1] + (c[1] - a[1]) * u, a[2] + (c[2] - a[2]) * u);
       _q.set(a[3], a[4], a[5], a[6]); _q2.set(c[3], c[4], c[5], c[6]); r.model.root.quaternion.copy(_q.slerp(_q2, u));
+      if (r.tiltV || r.tilt || r.pjV || r.pj) {       // knocked by me: sprung roll / pitch
+        r.tilt = r.tilt || 0; r.pj = r.pj || 0;
+        r.tiltV += (-r.tilt * 70 - r.tiltV * 6) * dt; r.tilt += r.tiltV * dt; r.pjV = r.pjV || 0; r.pjV += (-r.pj * 80 - r.pjV * 7) * dt; r.pj += r.pjV * dt;
+        r.model.root.quaternion.multiply(_q.setFromAxisAngle(_kz, r.tilt)).multiply(_q.setFromAxisAngle(_kx, r.pj));
+        if (Math.abs(r.tilt) + Math.abs(r.tiltV) + Math.abs(r.pj) + Math.abs(r.pjV) < 1e-3) r.tilt = r.tiltV = r.pj = r.pjV = 0;
+      }
       const bo = (c[8] & 1) > 0, sp = c[7]; r.sp = sp; r.id = o.id;
       r.model.anim(dt, sp, (c[8] & 2) > 0, bo, (bo ? 1.6 : 0.75) * Math.min(1, sp / 40), undefined, (c[8] & 4) > 0);
       r.label.material.opacity = Math.max(0, Math.min(1, (camera.position.distanceTo(r.model.root.position) - 6) / 8));
@@ -699,7 +736,7 @@ function frameRest(now, dt) {
   world.update(dt, (now - t0) / 1000, camera.position);
   updateCamera(dt, started);
   updateSpeedLines(dt, me.speed, me.boosting || me.sonic > 0);
-  updateWaves(dt);
+  updateWaves(dt); updateSparks(dt);
   sound.update(me.speed, me.thrust, me.boosting, me.mode === 'air');
   sound.setMusic(replay || (session && (session.phase === 'race' || session.phase === 'count')) ? 1 : 0);
   composer.render(dt);

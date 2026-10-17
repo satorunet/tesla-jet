@@ -66,14 +66,14 @@ export const VCRUISE = 122, VBOOST = 58, HOVER = 1.7;
 export const VSONIC = 340, NITRO_MAX = 2, NITRO_T = 2.4;   // NITRO: up to the speed of sound for a moment
 const HMAX = 26, G = 13, G_GAP = 7.8, KICK = 9;   // over a gap it glides (less pull) after the kick
 const _f = {}, V3 = THREE.Vector3;
-const _a = new V3(), _b = new V3(), _q = new THREE.Quaternion(), _m = new THREE.Matrix4(), _z = new V3(0, 0, 1);
+const _a = new V3(), _b = new V3(), _q = new THREE.Quaternion(), _m = new THREE.Matrix4(), _z = new V3(0, 0, 1), _x = new V3(1, 0, 0);
 
 export class Craft {
   constructor(tr) {
     this.tr = tr; this.mode = 'track';
     this.s = 0; this.u = 0; this.v = 0; this.vu = 0; this.h = HOVER; this.vh = 0; this.t = 0;
     this.pos = new V3(); this.vel = new V3(); this.fwd = new V3(0, 0, 1); this.up = new V3(0, 1, 0); this.quat = new THREE.Quaternion();
-    this.energy = 1; this.turbo = 0; this.nitro = 0; this.sonic = 0; this.boosting = false; this.thrust = 0; this.lift = 0.5; this.airT = 0; this.hint = -1; this.steerVis = 0; this.liftOn = false;
+    this.energy = 1; this.turbo = 0; this.nitro = 0; this.sonic = 0; this.boosting = false; this.thrust = 0; this.lift = 0.5; this.airT = 0; this.hint = -1; this.steerVis = 0; this.liftOn = false; this.tilt = 0; this.tiltV = 0; this.pj = 0; this.pjV = 0;
     this.events = []; this.hold = true; this.padCool = 0; this.wallT = 0; this.respawned = false; this.wasRoad = true;
   }
   get speed() { return Math.hypot(this.v, this.vu, this.vh); }
@@ -160,7 +160,13 @@ export class Craft {
     this.fwd.copy(T).multiplyScalar(Math.max(this.v, 20)).addScaledVector(R, this.vu * 0.6).addScaledVector(N, this.vh * 0.7).normalize();
     this.up.copy(N);
     this.steerVis += (steer - this.steerVis) * Math.min(1, dt * 7);
-    this.orient(this.steerVis * (this.mode === 'air' ? 0.55 : 0.32));
+    // knocks (car contact): a sprung roll / pitch on top of the pose
+    if (dt > 0) {
+      this.tiltV += (-this.tilt * 70 - this.tiltV * 6) * dt; this.tilt += this.tiltV * dt;
+      this.pjV += (-this.pj * 80 - this.pjV * 7) * dt; this.pj += this.pjV * dt;
+    }
+    this.orient(this.steerVis * (this.mode === 'air' ? 0.55 : 0.32) + this.tilt);
+    if (this.pj) this.quat.multiply(_q.setFromAxisAngle(_x, this.pj));
   }
   orient(roll) {
     const F = this.fwd, U = _a.copy(this.up).addScaledVector(F, -this.up.dot(F)).normalize();

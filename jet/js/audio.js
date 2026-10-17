@@ -244,6 +244,21 @@ export class Sound {
     // duck the music
     if (this.mG) { const g = this.mG.gain; g.cancelScheduledValues(t); g.setValueAtTime(0.06, t); g.linearRampToValueAtTime(0.32, t + 1.4); }
   }
+  // car-to-car contact: a metal clank (noise crack + inharmonic ring) over a body thump; soft = a short scrape
+  crash(v = 0.5) {
+    if (!this.ctx) return;
+    const c = this.ctx, t = c.currentTime;
+    const n = c.createBufferSource(), bp = c.createBiquadFilter(), g = c.createGain();
+    n.buffer = this.noiseBuf; bp.type = 'bandpass'; bp.Q.value = 1.4; bp.frequency.setValueAtTime(2600 + Math.random() * 1200, t); bp.frequency.exponentialRampToValueAtTime(900, t + 0.2);
+    g.gain.setValueAtTime(0.9 * v, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+    n.connect(bp); bp.connect(g); g.connect(this.master); n.start(t, Math.random()); n.stop(t + 0.25);
+    for (const f of [430, 697, 1123]) {
+      const o = c.createOscillator(), og = c.createGain(); o.type = 'triangle'; o.frequency.value = f * (0.95 + Math.random() * 0.1);
+      og.gain.setValueAtTime(0.12 * v, t); og.gain.exponentialRampToValueAtTime(0.001, t + 0.35 + v * 0.3);
+      o.connect(og); og.connect(this.master); o.start(t); o.stop(t + 0.7);
+    }
+    this.thud(Math.min(0.8, 0.25 + v * 0.6));
+  }
   item() { [988, 1319, 1760, 2349].forEach((f, i) => setTimeout(() => this.tone(f, 0.12, 0.1, 'square'), i * 45)); }
   chime() { this.tone(1318, 0.25, 0.14, 'sine'); setTimeout(() => this.tone(1976, 0.3, 0.12, 'sine'), 70); }
   thud(v = 0.4) {
