@@ -557,7 +557,7 @@ function bumpCars(dt) {
   bumpT -= dt;
   const f = frameAt(tr, me.s, _bf);
   for (const r of racers.values()) {
-    if (!r.model.root.visible) continue;
+    if (!r.model.root.visible || r.ghost) continue;   // ghosts pass through
     _bd.copy(me.pos).sub(r.model.root.position);
     const along = _bd.x * f.T[0] + _bd.y * f.T[1] + _bd.z * f.T[2];
     const lat = _bd.x * f.R[0] + _bd.y * f.R[1] + _bd.z * f.R[2];
@@ -672,8 +672,8 @@ function updateSteam(dt) {
 }
 let lastStopV = 0;
 
-// joined mid-race (online): until the next race you either drive the course as a ghost (see-through, no contact, not
-// sent to the others) or watch a racer (the camera follows them; ◀ ▶ / A D / ← → switch). V or the button toggles.
+// joined mid-race (online): until the next race you either drive the course as a ghost (see-through for everyone,
+// no contact) or watch a racer (the camera follows them; ◀ ▶ / A D / ← → switch). V or the button toggles.
 const spec = { id: null, mode: 'ghost' };
 const lateJoin = () => mode === 'online' && session && !session.me.racing && (session.phase === 'race' || session.phase === 'count') && !replay;
 const spectating = () => lateJoin() && spec.mode === 'watch';
@@ -687,11 +687,12 @@ function setSpecMode(m) {
   }
   renderSpecBar(true);
 }
-let ghostOn = false;
-function setGhostLook(on) {
-  if (on === ghostOn || !myModel) return; ghostOn = on;
-  myModel.root.traverse((o) => { if (o.isMesh && o.material && o.material.blending === THREE.NormalBlending) { if (on) { o.userData.op = [o.material.transparent, o.material.opacity]; o.material.transparent = true; o.material.opacity = 0.35; o.material.depthWrite = false; } else if (o.userData.op) { [o.material.transparent, o.material.opacity] = o.userData.op; o.material.depthWrite = true; } o.material.needsUpdate = true; } });
+// see-through look for a ghost car (mine, or another player's ghost run)
+function ghostLook(model, on) {
+  if (!model || !!model.ghost === on) return; model.ghost = on;
+  model.root.traverse((o) => { if (o.isMesh && o.material && o.material.blending === THREE.NormalBlending) { if (on) { o.userData.op = [o.material.transparent, o.material.opacity]; o.material.transparent = true; o.material.opacity = 0.35; o.material.depthWrite = false; } else if (o.userData.op) { [o.material.transparent, o.material.opacity] = o.userData.op; o.material.depthWrite = true; } o.material.needsUpdate = true; } });
 }
+const setGhostLook = (on) => ghostLook(myModel, on);
 // racers in race order (finished first, then by distance)
 function specList() {
   return [...session.others.values()].filter((o) => o.racing !== false && racers.get(o.id)?.model.root.visible)
@@ -718,7 +719,7 @@ function renderSpecBar(force) {
   $('#hud').classList.toggle('spectating', !!spectating());
   if (!lateJoin()) { if (!bar.classList.contains('hidden')) { bar.classList.add('hidden'); spec.mode = 'ghost'; } return; }
   const l = specList(), o = l.find((q) => q.id === spec.id), watch = spec.mode === 'watch';
-  const h = `<div class="sp-t">${watch ? L('観戦中', 'Spectating') : L('ゴーストで走行中（他の人には見えません）', 'Ghost run (the others can\'t see you)')} — ${L('次のレースから参加します', 'you join the next race')}</div>
+  const h = `<div class="sp-t">${watch ? L('観戦中', 'Spectating') : L('ゴーストで走行中（他の人には半透明で見えます・当たりません）', 'Ghost run (others see you see-through, no contact)')} — ${L('次のレースから参加します', 'you join the next race')}</div>
     <div class="sp-row">${watch ? `<button data-d="-1">◀</button><div class="sp-who">${o ? `<i style="background:${hex(o.col)}"></i>${flag(o.cc)}<b>${esc(showName(o.name))}</b><span>${l.indexOf(o) + 1}${L('位', 'th')}</span>` : L('レーサーを待っています…', 'waiting for racers…')}</div><button data-d="1">▶</button>` : ''}
       <button class="sp-mode" data-m="${watch ? 'ghost' : 'watch'}">${watch ? L('ゴーストで走る', 'Ghost run') : L('観戦する', 'Watch')}</button></div>`;
   if (h === specHtml && !force && !bar.classList.contains('hidden')) return;
@@ -830,8 +831,8 @@ function frameRest(now, dt) {
     if (sendT <= 0) {
       sendT = 1 / 15;
       const r2 = (v) => Math.round(v * 100) / 100, r3 = (v) => Math.round(v * 1000) / 1000;
-      const p = [r2(me.pos.x), r2(me.pos.y), r2(me.pos.z), r3(me.quat.x), r3(me.quat.y), r3(me.quat.z), r3(me.quat.w), r2(me.speed), (me.boosting ? 1 : 0) | (me.mode === 'air' ? 2 : 0) | (me.sonic > 0 ? 4 : 0)];
-      if (p.every(Number.isFinite) && !lateJoin()) session.sendPose(p, me.respawned);
+      const p = [r2(me.pos.x), r2(me.pos.y), r2(me.pos.z), r3(me.quat.x), r3(me.quat.y), r3(me.quat.z), r3(me.quat.w), r2(me.speed), (me.boosting ? 1 : 0) | (me.mode === 'air' ? 2 : 0) | (me.sonic > 0 ? 4 : 0) | (lateJoin() ? 8 : 0)];
+      if (p.every(Number.isFinite) && !spectating()) session.sendPose(p, me.respawned);   // a ghost run is sent too (flagged), a watcher isn't
       me.respawned = false;
     }
     // others: interpolate
@@ -854,6 +855,7 @@ function frameRest(now, dt) {
       }
       const bo = (c[8] & 1) > 0, sp = c[7]; r.sp = sp; r.id = o.id;
       r.model.anim(dt, sp, (c[8] & 2) > 0, bo, (bo ? 1.6 : 0.75) * Math.min(1, sp / 40), undefined, (c[8] & 4) > 0);
+      r.ghost = (c[8] & 8) > 0; ghostLook(r.model, r.ghost);   // someone waiting for the next race, on a ghost run
       r.label.material.opacity = Math.max(0, Math.min(1, (camera.position.distanceTo(r.model.root.position) - 6) / 8));
       updateTrails(r.trails, r.model, r.model.root.visible ? Math.min(1, sp / 90) * (bo ? 1.4 : 0.8) : 0);
     }
