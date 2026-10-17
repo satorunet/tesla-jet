@@ -395,7 +395,23 @@ export class Sound {
     }
     this.thud(Math.min(0.8, 0.25 + v * 0.6));
   }
-  item() { [988, 1319, 1760, 2349].forEach((f, i) => setTimeout(() => this.tone(f, 0.12, 0.1, 'square'), i * 45)); }
+  // pickups: quiet and soft (no buzzy square waves)
+  soft(f, dur, vol, t0 = 0) {
+    if (!this.ctx) return;
+    const c = this.ctx, t = c.currentTime + t0, o = c.createOscillator(), g = c.createGain();
+    o.type = 'sine'; o.frequency.value = f;
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + 0.012); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(this.master); o.start(t); o.stop(t + dur + 0.02);
+  }
+  whoosh(vol = 0.08) {
+    if (!this.ctx) return;
+    const c = this.ctx, t = c.currentTime, n = c.createBufferSource(), bp = c.createBiquadFilter(), g = c.createGain();
+    n.buffer = this.noiseBuf; bp.type = 'bandpass'; bp.Q.value = 1.2; bp.frequency.setValueAtTime(500, t); bp.frequency.exponentialRampToValueAtTime(3500, t + 0.3);
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + 0.05); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);
+    n.connect(bp); bp.connect(g); g.connect(this.master); n.start(t, Math.random()); n.stop(t + 0.4);
+  }
+  item() { this.soft(1175, 0.18, 0.05); this.soft(1760, 0.22, 0.04, 0.06); }
+  ring() { this.whoosh(0.07); this.soft(1568, 0.2, 0.035); }
   chime() { this.tone(1318, 0.25, 0.14, 'sine'); setTimeout(() => this.tone(1976, 0.3, 0.12, 'sine'), 70); }
   thud(v = 0.4) {
     if (!this.ctx) return;

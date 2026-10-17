@@ -214,7 +214,11 @@ wss.on('connection', (ws, req) => {
       return;
     }
     // boards for the title screen, solo results, and signing a record
-    if (m.t === 'boards') { send(p, { t: 'boards', boards: Object.fromEntries(STAGE_IDS.map((id) => [id, topBest(id, 3)])) }); return; }
+    if (m.t === 'boards') {
+      // also: how many people are online on each stage (rooms are per stage, so you only meet the ones on yours)
+      const online = Object.fromEntries(STAGE_IDS.map((id) => [id, 0])); for (const r of rooms) online[r.stage] += r.players.size;
+      send(p, { t: 'boards', boards: Object.fromEntries(STAGE_IDS.map((id) => [id, topBest(id, 3)])), online }); return;
+    }
     if (m.t === 'board' && tracks[m.stage]) { send(p, { t: 'board', stage: m.stage, best: topBest(m.stage, KEEP) }); return; }
     if (m.t === 'getReplay') {
       fs.readFile(replayPath(String(m.id || '')), 'utf8', (err, txt) => {

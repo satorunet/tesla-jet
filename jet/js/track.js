@@ -51,7 +51,7 @@ export const STAGES = {
     [628, 14, 40],
     [628, 16, -40],
     [628, 26, -96, { gap: true }],             // kicker: the road stops, fly over the chasm
-    [628, 28, -170, { gap: true, ring: true }],
+    [628, 28, -170, { gap: true, ring: true, nitro: 3, air: 4 }],
     [628, 16, -246, { gap: true, ring: true }],
     [628, 0, -320],                            // landing
     [610, -8, -400, { pad: 3, nitro: -4 }],
@@ -59,10 +59,10 @@ export const STAGES = {
     [430, -6, -520, { gate: true }],
     [300, 0, -522, { airRing: 10 }],
     [228, 8, -522, { gap: true }],             // second jump: between the towers
-    [150, 20, -530, { gap: true, ring: true }],
+    [150, 20, -530, { gap: true, ring: true, nitro: -3, air: 4 }],
     [62, 18, -522, { gap: true, ring: true }],
     [-30, 8, -510],
-    [-110, 10, -468],
+    [-110, 10, -468, { nitro: 4 }],
     [-150, 18, -392, { roll: 0 }],
     [-150, 30, -300, { roll: 180, pad: 0 }],   // corkscrew
     [-150, 42, -210, { roll: 360 }],
@@ -91,12 +91,12 @@ export const STAGES = {
     [840, 96, 1004, { roll: 900, pad: 0 }],
     [930, 94, 1004, { roll: 1080 }],           // ...and back
     [1010, 90, 990, { box: true, air: 12 }],
-    [1080, 86, 930],
+    [1080, 86, 930, { nitro: -4 }],
     [1110, 82, 850, { gate: true }],
     ...helix(1010, 760, 100, 0, -1.25, 78, 34),              // spiral dive
     [900, 32, 660, { nitro: true }],
     [820, 34, 660, { gap: true, roll: 1080 }], // barrel-roll jump
-    [740, 44, 660, { gap: true, ring: true, roll: 1260 }],
+    [740, 44, 660, { gap: true, ring: true, roll: 1260, nitro: true, air: 4.5 }],
     [660, 42, 660, { gap: true, roll: 1440 }],
     [580, 38, 660, { pad: 0 }],
     [420, 50, 650, { box: true }],
@@ -126,9 +126,9 @@ export const STAGES = {
     [855, 42, 510],
     [868, 62, 430, { gap: true, glide: 0.3, w: 44 }],        // the big ramp: launch out over the ocean
     [876, 92, 310, { gap: true, glide: 0.3, w: 44, ring: 6 }],
-    [880, 112, 170, { gap: true, glide: 0.3, w: 44, ring: 16 }],
+    [880, 112, 170, { gap: true, glide: 0.3, w: 44, ring: 16, nitro: 6, air: 9 }],
     [878, 108, 30, { gap: true, glide: 0.3, w: 44, ring: 4 }],
-    [870, 82, -110, { gap: true, glide: 0.3, w: 44, ring: 10 }],
+    [870, 82, -110, { gap: true, glide: 0.3, w: 44, ring: 10, nitro: -5, air: 9 }],
     [860, 50, -230],                                         // landing
     [840, 28, -350, { pad: 0 }],
     [800, 22, -410, { airRing: 10 }],
@@ -136,12 +136,12 @@ export const STAGES = {
     [600, 16, -520, { gate: true }],
     [450, 18, -525],
     [370, 24, -525, { gap: true, glide: 0.6 }],              // hop across the strait
-    [290, 32, -525, { gap: true, glide: 0.6, ring: true }],
+    [290, 32, -525, { gap: true, glide: 0.6, ring: true, nitro: 3, air: 4 }],
     [210, 24, -525],
     [110, 16, -480, { pad: -3 }],
     [30, 14, -380, { nitro: true }],
     [-20, 12, -240, { box: true, air: 12 }],
-    [-10, 12, -110],
+    [-10, 12, -110, { nitro: -4 }],
   ] },
   // night city: weave between towers, a two-turn spiral up the mega tower, a dive and a rooftop jump
   neon: { laps: 3, name: 'NEON SPIRAL', ja: 'ネオン・スパイラル', ctrl: [
@@ -151,13 +151,13 @@ export const STAGES = {
     [120, 46, 450, { nitro: true }],
     [270, 50, 488, { airRing: 11 }],
     ...helix(420, 600, 110, -90, 2, 50, 170, { w: 20 }),    // spiral up the tower
-    [570, 170, 478],
+    [570, 170, 478, { nitro: 4 }],
     [700, 150, 440, { pad: 0 }],
     [800, 108, 370, { box: true, air: 12 }],
     [858, 66, 250],
     [866, 44, 110, { nitro: true }],
     [856, 48, -20, { gap: true }],                           // rooftop jump
-    [826, 58, -140, { gap: true, ring: true }],
+    [826, 58, -140, { gap: true, ring: true, nitro: -3, air: 4 }],
     [786, 48, -260],
     [680, 42, -340, { pad: 0 }],
     [590, 39, -362, { nitro: true, air: 14 }],

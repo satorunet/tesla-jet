@@ -307,7 +307,7 @@ const STAGE_INFO = {
   neon: ['夜のネオン街。巨大タワーの螺旋を登ってダイブ。', 'Neon city: spiral up the tower, then dive.'],
 };
 function renderStages() {
-  $('#stages').innerHTML = STAGE_IDS.map((id) => `<button data-st="${id}" class="${id === stage ? 'on' : ''}"><b>${STAGES[id].name}</b><span>${EN ? '' : STAGES[id].ja + ' · '}${STAGES[id].laps}${L(' 周', ' laps')}</span></button>`).join('');
+  $('#stages').innerHTML = STAGE_IDS.map((id) => `<button data-st="${id}" class="${id === stage ? 'on' : ''}"><b>${STAGES[id].name}</b><span>${EN ? '' : STAGES[id].ja + ' · '}${STAGES[id].laps}${L(' 周', ' laps')}</span>${online[id] ? `<em class="on-n">● ${online[id]}${L('人オンライン', ' online')}</em>` : ''}</button>`).join('');
   $('#stage-desc').textContent = L(...STAGE_INFO[stage]);
   renderStageBest();
   for (const b of document.querySelectorAll('#stages button')) b.onclick = () => { b.blur(); setStage(b.dataset.st); };
@@ -354,7 +354,7 @@ function big(a, b, dur = 1) {
 function onEvent(type, d) {
   if (type === 'room') {
     if (session.phase === 'count' && d?.prev !== 'count') { toGrid(session.me.slot); me.hold = true; setMyColor(session.me.col); if (session.raceNo = (session.raceNo || 0) + 1, session.raceNo > 1) sound.pickSong(tr.id); }
-    if (session.phase === 'race' && d?.prev === 'count') { me.hold = false; big('GO!', '', 1.1); sound.tone(1320, 0.5, 0.2); myProg.lapStart = session.startAt; }
+    if (session.phase === 'race' && d?.prev === 'count') { me.hold = false; big('GO!', '', 1.1); sound.tone(1320, 0.45, 0.1, 'triangle'); myProg.lapStart = session.startAt; }
     if (session.phase === 'wait') { if (d?.prev === 'result') toGrid(Math.floor(Math.random() * 8)); me.hold = false; setMyColor(session.me.col); }
     renderPanel();
   } else if (type === 'lap') {
@@ -381,11 +381,13 @@ function saveMyBest(race, lap) {
   try { localStorage.setItem('jet-my-' + tr.id, JSON.stringify(b)); } catch { /* ignore */ }
   return pb;
 }
-let boards = null, boardLink = null;
+let boards = null, boardLink = null, online = {};
+// keep the per-stage online counts fresh while the title is up
+setInterval(() => { if (!session && !replay && !document.hidden) loadBoards(); }, 15000);
 async function loadBoards() {
   boardLink = boardLink || new BoardLink();
   const r = await boardLink.ask({ t: 'boards' }, 'boards');
-  if (r) { boards = r.boards; renderStageBest(); }
+  if (r) { boards = r.boards; online = r.online || {}; renderStages(); }
 }
 function renderStageBest() {
   const el = $('#stage-best'); if (!el) return;
@@ -434,7 +436,7 @@ function renderPanel() {
       <div class="p-count">${L('スタートまで', 'Starts in')} <b id="p-clock">–</b> ${L('秒', 's')}</div>
       <ul class="p-list">${ppl.map((q) => `<li class="${q.me ? 'me' : ''}"><i style="background:${hex(q.col)}"></i>${flag(q.cc)}<span class="nm">${esc(q.name)}</span>${q.ready ? `<em>${L('準備OK', 'READY')}</em>` : ''}</li>`).join('')}</ul>
       <div class="p-row"><input id="p-name" maxlength="16" value="${esc(session.name)}"><button id="p-ready" class="${session.me.ready ? 'on' : ''}">${session.me.ready ? L('準備OK ✓', 'Ready ✓') : L('準備OK', 'Ready')}</button></div>
-      <div class="p-note">${L('全員が準備OKで 3 秒後にスタート。待つ間はコースを自由に走れます。', 'Starts 3 s after everyone is ready. Fly the course while you wait.')}</div>${bestHtml()}`;
+      <div class="p-note">${L('全員が準備OKで 3 秒後にスタート。待つ間はコースを自由に走れます。', 'Starts 3 s after everyone is ready. Fly the course while you wait.')}</div>${ppl.length < 2 ? `<div class="p-note">${L('オンラインはステージごとに部屋が分かれています。一緒に走るには同じステージを選んでください。', 'Rooms are per stage: pick the same stage to race together.')}${otherStages()}</div>` : ''}${bestHtml()}`;
   } else if (ph === 'result' && session.result) {
     p.classList.add('center');
     h = `<div class="p-h">${L('レース結果', 'RESULT')}</div>
@@ -453,6 +455,10 @@ function renderPanel() {
   const rb = $('#p-ready'); if (rb) rb.onclick = () => { rb.blur(); session.setReady(!session.me.ready); };
   const ps = $('#p-solo'); if (ps) ps.onclick = () => { exitToTitle(); begin('solo'); };
   $('#p-exit').onclick = () => exitToTitle();
+}
+function otherStages() {
+  const l = STAGE_IDS.filter((id) => id !== tr.id && online[id]).map((id) => `${STAGES[id].name} ${online[id]}${L('人', '')}`);
+  return l.length ? `<br>${L('いま他のステージ：', 'Online elsewhere: ')}${l.join(' / ')}` : '';
 }
 function bestHtml() {
   const b = session.best; if (!b || (!b.race?.length && !b.lap?.length)) return '';
@@ -586,7 +592,7 @@ function simulate(dt, inp) {
   // events from the machine
   while (me.events.length) {
     const ev = me.events.shift();
-    if (ev === 'pad') { flash('BOOST!', 0.8); sound.tone(880, 0.12, 0.15); cam.shake = 0.25; }
+    if (ev === 'pad') { flash('BOOST!', 0.8); sound.whoosh(0.09); cam.shake = 0.25; }
     else if (ev === 'wall') { cam.shake = 0.35; sound.thud(0.25); }
     else if (ev === 'hard') { flash(L('ハードランディング', 'HARD LANDING')); cam.shake = 0.8; sound.thud(0.6); }
     else if (ev === 'land') { cam.shake = 0.3; sound.thud(0.3); }
@@ -597,7 +603,7 @@ function simulate(dt, inp) {
   // rings: pass through for a speed burst
   for (const r of world.rings) {
     const d = _cl.copy(me.pos).sub(r.c), along = d.dot(r.T);
-    if (Math.abs(along) < 3 && d.length() < r.r && r.hit <= 0) { r.hit = 1.2; me.v = Math.max(me.v, Math.min(260, me.v * (r.gate ? 1.14 : 1.18))); me.energy = Math.min(1, me.energy + 0.2); flash(r.gate ? 'DASH!' : 'RING +', 0.8); sound.chime(); cam.shake = 0.2; }
+    if (Math.abs(along) < 3 && d.length() < r.r && r.hit <= 0) { r.hit = 1.2; me.v = Math.max(me.v, Math.min(260, me.v * (r.gate ? 1.14 : 1.18))); me.energy = Math.min(1, me.energy + 0.2); flash(r.gate ? 'DASH!' : 'RING +', 0.8); sound.ring(); cam.shake = 0.2; }
   }
   // item boxes: a random speed item; JET orbs: energy
   for (const b of world.boxes) if (b.cool <= 0 && me.pos.distanceToSquared(b.c) < 7) {
@@ -610,7 +616,7 @@ function simulate(dt, inp) {
   for (const q of world.nitros) if (q.cool <= 0 && me.nitro < NITRO_MAX && me.pos.distanceToSquared(q.c) < 9) {
     q.cool = 6; me.nitro++; flash(`NITRO +1  (${me.nitro}/${NITRO_MAX})`, 1.2); sound.item();
   }
-  for (const o of world.orbs) if (o.cool <= 0 && me.pos.distanceToSquared(o.c) < 6) { o.cool = 8; me.energy = Math.min(1, me.energy + 0.12); sound.tone(1568 + Math.random() * 200, 0.08, 0.06, 'sine'); }
+  for (const o of world.orbs) if (o.cool <= 0 && me.pos.distanceToSquared(o.c) < 6) { o.cool = 8; me.energy = Math.min(1, me.energy + 0.12); sound.soft(1760 + Math.random() * 300, 0.1, 0.025); }
   if (session && started && session.phase === 'race' && session.me.racing && session.me.fin === null) myProg.update(me.pos.x, me.pos.y, me.pos.z, session.now());
 }
 // recording of my run (for the replay of a ranked time): REC_HZ frames of [t ms, x, y, z (cm), quaternion (x1000), speed (x10), flags]
@@ -746,7 +752,7 @@ function frameRest(now, dt) {
   // countdown
   if (session && (session.phase === 'count')) {
     const s = Math.ceil((session.startAt - session.now()) / 1000);
-    if (s !== frame.lastBeep && s >= 1 && s <= 3) { frame.lastBeep = s; big(String(s), '', 0.9); sound.tone(660, 0.25, 0.18); }
+    if (s !== frame.lastBeep && s >= 1 && s <= 3) { frame.lastBeep = s; big(String(s), '', 0.9); sound.tone(660, 0.22, 0.09, 'triangle'); }
   } else frame.lastBeep = -1;
   world.update(dt, (now - t0) / 1000, camera.position);
   updateCamera(dt, started);
