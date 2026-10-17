@@ -716,11 +716,11 @@ function stepSpectate() {
 let specHtml = '';
 function renderSpecBar(force) {
   const bar = $('#spec');
-  $('#hud').classList.toggle('spectating', !!spectating());
+  $('#hud').classList.toggle('spectating', !!spectating()); $('#hud').classList.toggle('latejoin', !!lateJoin());
   if (!lateJoin()) { if (!bar.classList.contains('hidden')) { bar.classList.add('hidden'); spec.mode = 'ghost'; } return; }
   const l = specList(), o = l.find((q) => q.id === spec.id), watch = spec.mode === 'watch';
   const h = `<div class="sp-t">${watch ? L('観戦中', 'Spectating') : L('ゴーストで走行中（他の人には半透明で見えます・当たりません）', 'Ghost run (others see you see-through, no contact)')} — ${L('次のレースから参加します', 'you join the next race')}</div>
-    <div class="sp-row">${watch ? `<button data-d="-1">◀</button><div class="sp-who">${o ? `<i style="background:${hex(o.col)}"></i>${flag(o.cc)}<b>${esc(showName(o.name))}</b><span>${l.indexOf(o) + 1}${L('位', 'th')}</span>` : L('レーサーを待っています…', 'waiting for racers…')}</div><button data-d="1">▶</button>` : ''}
+    <div class="sp-row">${watch ? `<button data-d="-1">◀</button><div class="sp-who">${o ? `<i style="background:${hex(o.col)}"></i>${flag(o.cc)}<b>${esc(showName(o.name))}</b>` : L('レーサーを待っています…', 'waiting for racers…')}</div><button data-d="1">▶</button>` : ''}
       <button class="sp-mode" data-m="${watch ? 'ghost' : 'watch'}">${watch ? L('ゴーストで走る', 'Ghost run') : L('観戦する', 'Watch')}</button></div>`;
   if (h === specHtml && !force && !bar.classList.contains('hidden')) return;
   specHtml = h; bar.innerHTML = h; bar.classList.remove('hidden');
@@ -892,7 +892,7 @@ function frameRest(now, dt) {
       $('#h-pos').innerHTML = racing ? `${rows.findIndex((r) => r.me) + 1}<small>/${rows.length}</small>` : '-<small></small>';
       if (spectating()) {   // the HUD follows the racer you're watching
         const L2 = specList(), o = L2.find((q) => q.id === spec.id);
-        if (o) { $('#h-pos').innerHTML = `${L2.indexOf(o) + 1}<small>/${L2.length}</small>`; $('#h-lap span').textContent = o.fin != null ? 'FINISH' : `${Math.min(session.laps, (o.lap || 0) + 1)}/${session.laps}`; }
+        if (o) { $('#h-lap span').textContent = o.fin != null ? 'FINISH' : `${Math.min(session.laps, (o.lap || 0) + 1)}/${session.laps}`; }
         $('#h-time').textContent = fmt(session.phase === 'race' ? sn - session.startAt : 0);
       }
       renderSpecBar();

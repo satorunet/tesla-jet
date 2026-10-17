@@ -189,3 +189,4 @@ body.touch #spec{bottom:calc(max(18px,env(safe-area-inset-bottom)) + 150px)}
 #stage-best q,#rp-info q{display:inline-block;max-width:16em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom}
 .rk-link svg,.rp-btns svg{display:block;margin:auto}
 .p-cols>div{min-width:0}.p-cols .p-list li{min-width:0}.p-cols .nm{min-width:0}
+#hud.latejoin #h-pos{display:none!important}   /* waiting for the next race: no standings */
