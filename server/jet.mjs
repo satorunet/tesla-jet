@@ -254,7 +254,7 @@ wss.on('connection', (ws, req) => {
       p.pose = m.p; p.lastPose = m.p; p.poseT = now;
       if (r.phase === 'race' && p.racing && p.fin === null && p.prog) r.progress(p, m.p[0], m.p[1], m.p[2], now);
     } else if (m.t === 'ready') { p.ready = !!m.v; r.checkReady(); r.sync(); }
-    else if (m.t === 'name') { p.name = cleanName(m.name); r.sync(); }
+    else if (m.t === 'name' && !p.ready) { p.name = cleanName(m.name); r.sync(); }   // the name is locked once you're ready
     else if (m.t === 'ping') send(p, { t: 'pong', c: m.c, s: Date.now() });
   });
   ws.on('close', () => {

@@ -435,7 +435,7 @@ function renderPanel() {
     h = `<div class="p-h">${L('オンラインレース', 'ONLINE RACE')}</div><div class="p-sub">${tr.name} · ${L(`${tr.laps} 周 · 最大 8 人 · 足りない分は CPU`, `${tr.laps} laps · up to 8 · CPUs fill the grid`)}</div>
       <div class="p-count">${L('スタートまで', 'Starts in')} <b id="p-clock">–</b> ${L('秒', 's')}</div>
       <ul class="p-list">${ppl.map((q) => `<li class="${q.me ? 'me' : ''}"><i style="background:${hex(q.col)}"></i>${flag(q.cc)}<span class="nm">${esc(q.name)}</span>${q.ready ? `<em>${L('準備OK', 'READY')}</em>` : ''}</li>`).join('')}</ul>
-      <div class="p-row"><input id="p-name" maxlength="16" value="${esc(session.name)}"><button id="p-ready" class="${session.me.ready ? 'on' : ''}">${session.me.ready ? L('準備OK ✓', 'Ready ✓') : L('準備OK', 'Ready')}</button></div>
+      <div class="p-row"><input id="p-name" maxlength="16" value="${esc(session.name)}"${session.me.ready ? ` disabled title="${L('準備OKを解除すると変更できます', 'Cancel ready to change it')}"` : ''}><button id="p-ready" class="${session.me.ready ? 'on' : ''}">${session.me.ready ? L('準備OK ✓', 'Ready ✓') : L('準備OK', 'Ready')}</button></div>
       <div class="p-note">${L('全員が準備OKで 3 秒後にスタート。待つ間はコースを自由に走れます。', 'Starts 3 s after everyone is ready. Fly the course while you wait.')}</div>${ppl.length < 2 ? `<div class="p-note">${L('オンラインはステージごとに部屋が分かれています。一緒に走るには同じステージを選んでください。', 'Rooms are per stage: pick the same stage to race together.')}${otherStages()}</div>` : ''}${bestHtml()}`;
   } else if (ph === 'result' && session.result) {
     p.classList.add('center');
@@ -452,7 +452,12 @@ function renderPanel() {
     nm.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') nm.blur(); });
     nm.addEventListener('change', () => { const v = nm.value.trim().slice(0, 16) || session.name; $('#name').value = v; saveName(); session.setName(v); });
   }
-  const rb = $('#p-ready'); if (rb) rb.onclick = () => { rb.blur(); session.setReady(!session.me.ready); };
+  const rb = $('#p-ready'); if (rb) rb.onclick = () => {
+    rb.blur();
+    // a name still being typed is sent before the ready (after that it's locked)
+    if (nm && !session.me.ready) { const v = nm.value.trim().slice(0, 16) || session.name; if (v !== session.name) { $('#name').value = v; saveName(); session.setName(v); } }
+    session.setReady(!session.me.ready);
+  };
   const ps = $('#p-solo'); if (ps) ps.onclick = () => { exitToTitle(); begin('solo'); };
   $('#p-exit').onclick = () => exitToTitle();
 }
