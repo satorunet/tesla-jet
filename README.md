@@ -1,4 +1,4 @@
-# TESRA JET RACER
+# TESLA JET RACER
 
 ジェットで浮かぶテスラの次世代レース — a browser racing game where a hovering Tesla flies round sky circuits on jets.
 

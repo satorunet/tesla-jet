@@ -1,7 +1,7 @@
 {
   "name": "tesra-jet-server",
   "private": true,
-  "description": "WebSocket race server for TESRA JET RACER (rooms, CPU racers, laps, record boards, replays)",
+  "description": "WebSocket race server for TESLA JET RACER (rooms, CPU racers, laps, record boards, replays)",
   "type": "module",
   "main": "jet.mjs",
   "scripts": { "start": "node jet.mjs" },

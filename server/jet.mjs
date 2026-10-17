@@ -1,5 +1,5 @@
 // ジェットレース（tesra-jet.service, 127.0.0.1:3332）
-// nginx: /tesra/jet/ws -> ws://127.0.0.1:3332
+// nginx: jet.satoru.net/ws -> ws://127.0.0.1:3332
 // Rooms of up to 8. Clients fly their own machine and send their pose ~15x/s; the server works out checkpoints and laps
 // from those positions (same rules as the client's solo mode, ../jet/js/rules.js), fills empty grid slots with CPU
 // racers and relays everything.
