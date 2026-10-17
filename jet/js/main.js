@@ -307,7 +307,7 @@ const STAGE_INFO = {
   neon: ['夜のネオン街。巨大タワーの螺旋を登ってダイブ。', 'Neon city: spiral up the tower, then dive.'],
 };
 function renderStages() {
-  $('#stages').innerHTML = STAGE_IDS.map((id) => `<button data-st="${id}" class="${id === stage ? 'on' : ''}"><b>${STAGES[id].name}</b><span>${EN ? '' : STAGES[id].ja + ' · '}${STAGES[id].laps}${L(' 周', ' laps')}</span>${online[id] ? `<em class="on-n">● ${online[id]}${L('人オンライン', ' online')}</em>` : ''}</button>`).join('');
+  $('#stages').innerHTML = STAGE_IDS.map((id) => `<button data-st="${id}" class="${id === stage ? 'on' : ''}"><b>${STAGES[id].name}</b><span>${EN ? '' : STAGES[id].ja + ' · '}${STAGES[id].laps}${L(' 周', ' laps')}${online[id] ? ` <em class="on-n" title="${L('オンライン', 'online')}">●${online[id]}</em>` : ''}</span></button>`).join('');
   $('#stage-desc').textContent = L(...STAGE_INFO[stage]);
   renderStageBest();
   for (const b of document.querySelectorAll('#stages button')) b.onclick = () => { b.blur(); setStage(b.dataset.st); };

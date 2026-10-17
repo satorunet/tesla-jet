@@ -171,5 +171,5 @@ dl.cr dt{color:var(--dim);font-size:11px;letter-spacing:.04em}dl.cr dd{margin:0 
 #hud.replaying #b-jet,#hud.replaying #h-pos,#hud.replaying #h-lap,#hud.replaying #h-best,#hud.replaying #ebar,#hud.replaying .elbl,#hud.replaying #nitro,#hud.replaying #stick{display:none!important}
 #hud.replaying #h-speed{bottom:calc(max(16px,env(safe-area-inset-bottom)) + 110px)}
 .cr-fan{margin:0 0 10px;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.05);font-size:12px;line-height:1.6;color:var(--ink)}
-#stages button .on-n{font:700 10px "Noto Sans JP";font-style:normal;color:#2ee59d}
+#stages button .on-n{font:700 10px "Noto Sans JP";font-style:normal;color:#2ee59d;margin-left:3px;white-space:nowrap}
 .p-row input:disabled{opacity:.55;cursor:not-allowed}
