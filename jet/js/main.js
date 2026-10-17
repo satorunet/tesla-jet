@@ -7,7 +7,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { buildTrack, gridSlot, frameAt, STAGES, STAGE_IDS } from './track.js';
 import { Progress } from './rules.js';
-import { buildCraft, Craft, setCarEnv, NITRO_MAX, VSONIC } from './craft.js';
+import { buildCraft, Craft, setCarEnv, radialTex, NITRO_MAX, VSONIC } from './craft.js';
 import { buildWorld } from './world.js';
 import { Online, Solo, BoardLink } from './net.js';
 import { Sound } from './audio.js';
@@ -500,28 +500,42 @@ function frame(now) {
 // contact trades speed (the one behind is held back, the one in front is shoved on). Each client pushes its own car;
 // in solo the CPUs get shoved too.
 const _bf = {}, _bd = new THREE.Vector3(), _kz = new THREE.Vector3(0, 0, 1), _kx = new THREE.Vector3(1, 0, 0);
-// sparks: a small pool of additive points flung out from a contact
-const SPK = 48, spkPos = new Float32Array(SPK * 3), spkVel = new Float32Array(SPK * 3), spkLife = new Float32Array(SPK);
-const spkGeo = new THREE.BufferGeometry(); spkGeo.setAttribute('position', new THREE.BufferAttribute(spkPos, 3));
-const spkPts = new THREE.Points(spkGeo, new THREE.PointsMaterial({ color: new THREE.Color(2.6, 1.6, 0.6), size: 0.35, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
-spkPts.frustumCulled = false; scene.add(spkPts);
-let spkI = 0;
-function sparks(p, k) {
-  const n = Math.round(10 + k * 20);
+// sparks: a pool of glowing streaks flung out from a contact (white-hot -> orange as they cool), plus a flash
+const SPK = 420, spkPos = new Float32Array(SPK * 6), spkCol = new Float32Array(SPK * 6), spkVel = new Float32Array(SPK * 3), spkLife = new Float32Array(SPK), spkMax = new Float32Array(SPK);
+const spkGeo = new THREE.BufferGeometry();
+spkGeo.setAttribute('position', new THREE.BufferAttribute(spkPos, 3)); spkGeo.setAttribute('color', new THREE.BufferAttribute(spkCol, 3));
+const spkLines = new THREE.LineSegments(spkGeo, new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
+const spkHeads = new THREE.Points(spkGeo, new THREE.PointsMaterial({ map: radialTex(), vertexColors: true, size: 0.55, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
+spkLines.frustumCulled = spkHeads.frustumCulled = false; scene.add(spkLines, spkHeads);
+const spkFlash = new THREE.Sprite(new THREE.SpriteMaterial({ map: radialTex(), color: new THREE.Color(2, 1.4, 0.7), transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
+scene.add(spkFlash);
+let spkI = 0, flashT = 0;
+function sparks(p, k, n = Math.round(30 + k * 60)) {
   for (let j = 0; j < n; j++) {
-    const i = spkI = (spkI + 1) % SPK;
-    spkPos.set([p.x, p.y + 0.4, p.z], i * 3);
-    spkVel.set([me.vel.x * 0.85 + (Math.random() - 0.5) * 18, (Math.random()) * 9, me.vel.z * 0.85 + (Math.random() - 0.5) * 18], i * 3);
-    spkLife[i] = 0.25 + Math.random() * 0.3;
+    const i = spkI = (spkI + 1) % SPK, sp = 8 + Math.random() * 26 * (0.5 + k);
+    const a = Math.random() * Math.PI * 2, up = Math.random() * 0.9;
+    spkPos.set([p.x, p.y + 0.5, p.z, p.x, p.y + 0.5, p.z], i * 6);
+    spkVel.set([me.vel.x * 0.8 + Math.cos(a) * sp, up * sp * 0.7 + 2, me.vel.z * 0.8 + Math.sin(a) * sp], i * 3);
+    spkLife[i] = spkMax[i] = 0.35 + Math.random() * 0.55;
   }
+  if (n > 20) { spkFlash.position.set(p.x, p.y + 0.6, p.z); flashT = 0.18; spkFlash.scale.setScalar(2.5 + k * 3.5); }
 }
 function updateSparks(dt) {
+  const g = 22;
   for (let i = 0; i < SPK; i++) {
-    if (spkLife[i] <= 0) { spkPos[i * 3 + 1] = -1e5; continue; }
-    spkLife[i] -= dt; spkVel[i * 3 + 1] -= 20 * dt;
-    for (let j = 0; j < 3; j++) spkPos[i * 3 + j] += spkVel[i * 3 + j] * dt;
+    const o = i * 6;
+    if (spkLife[i] <= 0) { spkCol.fill(0, o, o + 6); continue; }
+    spkLife[i] -= dt; spkVel[i * 3 + 1] -= g * dt;
+    const vx = spkVel[i * 3], vy = spkVel[i * 3 + 1], vz = spkVel[i * 3 + 2];
+    spkPos[o] += vx * dt; spkPos[o + 1] += vy * dt; spkPos[o + 2] += vz * dt;
+    // tail trails behind along the (relative) motion: a streak
+    const rx = vx - me.vel.x * 0.8, rz = vz - me.vel.z * 0.8;
+    spkPos[o + 3] = spkPos[o] - rx * 0.035; spkPos[o + 4] = spkPos[o + 1] - vy * 0.035; spkPos[o + 5] = spkPos[o + 2] - rz * 0.035;
+    const f = Math.max(0, spkLife[i] / spkMax[i]), r = 1.9 * f + 0.35, gg = 1.3 * f * f + 0.2 * f, bb = 0.7 * f * f * f;
+    spkCol.set([r, gg, bb, r * 0.25, gg * 0.2, bb * 0.1], o);
   }
-  spkGeo.attributes.position.needsUpdate = true;
+  spkGeo.attributes.position.needsUpdate = true; spkGeo.attributes.color.needsUpdate = true;
+  if (flashT > 0) { flashT -= dt; spkFlash.material.opacity = Math.max(0, flashT / 0.18) * 0.7; } else spkFlash.material.opacity = 0;
 }
 let bumpT = 0;
 function bumpCars(dt) {
@@ -551,6 +565,7 @@ function bumpCars(dt) {
       me.s += pa * 0.5; me.v = Math.max(me.v, sp * 0.92);
       if (bot) bot.v = Math.min(bot.v, me.v * 0.95);
     }
+    if (bumpT > 0) sparks(_bd.copy(me.pos).add(r.model.root.position).multiplyScalar(0.5), 0.4, 5);   // grinding along: a steady spray
     // reaction: both cars heel / pitch, sparks fly, a clank (a soft scrape for light contact)
     if (bumpT <= 0) {
       const k = Math.min(1, 0.25 + hard * 0.035);
