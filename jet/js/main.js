@@ -5,7 +5,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-import { buildTrack, gridSlot, frameAt, STAGES, STAGE_IDS } from './track.js';
+import { buildTrack, gridSlot, frameAt, nearest, STAGES, STAGE_IDS } from './track.js';
 import { Progress } from './rules.js';
 import { buildCraft, Craft, setCarEnv, radialTex, NITRO_MAX, VSONIC } from './craft.js';
 import { buildWorld } from './world.js';
@@ -171,6 +171,8 @@ addEventListener('keydown', (e) => {
   if (e.code === 'KeyC') camMode = (camMode + 1) % 3;
   if (e.code === 'KeyR' && session && (session.phase === 'race' || session.phase === 'wait')) respawn();
   if (e.code === 'KeyM') toggleSound();
+  if (spectating() && ['ArrowLeft', 'ArrowRight', 'KeyA', 'KeyD'].includes(e.code)) specNext(e.code === 'ArrowLeft' || e.code === 'KeyA' ? -1 : 1);
+  if (lateJoin() && e.code === 'KeyV') setSpecMode(spec.mode === 'ghost' ? 'watch' : 'ghost');
 });
 addEventListener('keyup', (e) => keys.delete(e.code));
 addEventListener('blur', () => keys.clear());
@@ -238,7 +240,7 @@ function updateCamera(dt, started) {
   const dist = hood ? -0.6 : far ? 14 : 7.2, hgt = hood ? 1.05 : far ? 4.4 : 2.3;
   _cv.copy(me.pos).addScaledVector(_cf, -dist).addScaledVector(me.up, hgt);
   _cl.copy(me.pos).addScaledVector(_cf, hood ? 30 : 16).addScaledVector(me.up, hood ? 0.9 : 1.3);
-  const k = hood ? 1 : 1 - Math.exp(-dt * 14);
+  const k = hood || spectating() ? 1 : 1 - Math.exp(-dt * 14);   // watching: lock on (their position arrives in steps)
   cam.pos.lerp(_cv, k); cam.look.lerp(_cl, hood ? 1 : 1 - Math.exp(-dt * 20));
   cam.up.lerp(me.up, 1 - Math.exp(-dt * (me.mode === 'track' ? 6 : 3))).normalize();
   const fovT = (camera.aspect < 0.8 ? 78 : 68) + Math.min(40, Math.max(0, sp - 80) * 0.17) + (me.boosting ? 7 : 0) + (me.sonic > 0 ? 10 : 0);
@@ -284,6 +286,7 @@ const saveName = () => { const v = $('#name').value.trim().slice(0, 16) || myNam
 $('#name').addEventListener('keydown', (e) => e.stopPropagation());
 function begin(m) {
   if (!ready) return;
+  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();   // keys go to the game, not the name box
   sound.pickSong(tr.id); sound.start(); started = true; mode = m;
   $('#title').classList.add('hidden'); $('#hud').classList.remove('hidden');
   const name = saveName();
@@ -442,7 +445,7 @@ function renderPanel() {
     h = `<div class="p-h">${L('レース結果', 'RESULT')}</div>
       <ul class="p-list">${session.result.map((r) => `<li class="${r.id === session.me.id ? 'me' : ''}"><span class="rk">${r.place}</span><i style="background:${hex(r.col)}"></i>${flag(r.cc)}<span class="nm">${esc(r.name)}</span><span class="bl">${r.best ? 'BL ' + fmt(r.best).slice(1) : ''}</span><span class="tm">${r.time != null ? fmt(r.time) : 'DNF'}</span></li>`).join('')}</ul>
       <div class="p-count">${L('次のレースまで', 'Next race in')} <b id="p-clock">–</b> ${L('秒', 's')}</div>${bestHtml()}`;
-  } else if ((ph === 'race' || ph === 'count') && mode === 'online' && !session.me.racing) h = `<div class="p-h">${L('レース観戦中 — 次のレースから参加', 'Spectating — you join the next race')}</div>`;
+  }
   if (!h) { p.classList.add('hidden'); return; }
   const old = $('#p-name'), typing = old && document.activeElement === old ? old.value : null;
   p.innerHTML = h + '<button class="p-x" id="p-exit">×</button>'; p.classList.remove('hidden');
@@ -504,6 +507,7 @@ function frame(now) {
   readInput(dt);
   if (session?.tick) session.tick(dt);
   if (replay) stepReplay(dt);
+  else if (spectating()) stepSpectate();
   else simulate(dt, started ? input : { steer: 0, pitch: 0 });
   frameRest(now, dt);
 }
@@ -593,7 +597,7 @@ function bumpCars(dt) {
 function simulate(dt, inp) {
   const sub = Math.ceil(dt / (1 / 120));
   for (let i = 0; i < sub; i++) { me.update(dt / sub, i === 0 ? inp : { ...inp, liftPress: false }); }
-  if (started) bumpCars(dt);
+  if (started && !lateJoin()) bumpCars(dt);   // a ghost passes through
   // events from the machine
   while (me.events.length) {
     const ev = me.events.shift();
@@ -667,6 +671,61 @@ function updateSteam(dt) {
   }
 }
 let lastStopV = 0;
+
+// joined mid-race (online): until the next race you either drive the course as a ghost (see-through, no contact, not
+// sent to the others) or watch a racer (the camera follows them; ◀ ▶ / A D / ← → switch). V or the button toggles.
+const spec = { id: null, mode: 'ghost' };
+const lateJoin = () => mode === 'online' && session && !session.me.racing && (session.phase === 'race' || session.phase === 'count') && !replay;
+const spectating = () => lateJoin() && spec.mode === 'watch';
+function setSpecMode(m) {
+  if (m === spec.mode) return;
+  spec.mode = m;
+  if (m === 'ghost') {   // drop the ghost onto the course where the camera was
+    const q = nearest(tr, me.pos.x, me.pos.y, me.pos.z, -1);
+    me.place(q.s, Math.max(-5, Math.min(5, q.u))); me.v = 60; me.hold = false;
+    cam.pos.copy(me.pos).addScaledVector(me.fwd, -9.5).addScaledVector(me.up, 3);
+  }
+  renderSpecBar(true);
+}
+let ghostOn = false;
+function setGhostLook(on) {
+  if (on === ghostOn || !myModel) return; ghostOn = on;
+  myModel.root.traverse((o) => { if (o.isMesh && o.material && o.material.blending === THREE.NormalBlending) { if (on) { o.userData.op = [o.material.transparent, o.material.opacity]; o.material.transparent = true; o.material.opacity = 0.35; o.material.depthWrite = false; } else if (o.userData.op) { [o.material.transparent, o.material.opacity] = o.userData.op; o.material.depthWrite = true; } o.material.needsUpdate = true; } });
+}
+// racers in race order (finished first, then by distance)
+function specList() {
+  return [...session.others.values()].filter((o) => o.racing !== false && racers.get(o.id)?.model.root.visible)
+    .sort((a, b) => (a.fin ?? Infinity) - (b.fin ?? Infinity) || (b.dist || 0) - (a.dist || 0));
+}
+function specNext(d) {
+  const l = specList(); if (!l.length) return;
+  const i = l.findIndex((o) => o.id === spec.id);
+  spec.id = l[((i < 0 ? 0 : i + d) % l.length + l.length) % l.length].id; renderSpecBar(true);
+}
+// put the view (me.*) on the watched racer: the camera, speedometer and sound follow it
+function stepSpectate() {
+  const l = specList(); if (!l.length) return;
+  if (!l.some((o) => o.id === spec.id)) spec.id = l[0].id;
+  const r = racers.get(spec.id); if (!r) return;
+  me.pos.copy(r.model.root.position); me.quat.copy(r.model.root.quaternion);
+  me.fwd.set(0, 0, 1).applyQuaternion(me.quat); me.up.set(0, 1, 0).applyQuaternion(me.quat);
+  me.v = r.sp || 0; me.vu = 0; me.vh = 0; me.vel.copy(me.fwd).multiplyScalar(me.v);
+  me.boosting = false; me.sonic = 0; me.mode = 'track'; me.hold = true;
+}
+let specHtml = '';
+function renderSpecBar(force) {
+  const bar = $('#spec');
+  $('#hud').classList.toggle('spectating', !!spectating());
+  if (!lateJoin()) { if (!bar.classList.contains('hidden')) { bar.classList.add('hidden'); spec.mode = 'ghost'; } return; }
+  const l = specList(), o = l.find((q) => q.id === spec.id), watch = spec.mode === 'watch';
+  const h = `<div class="sp-t">${watch ? L('観戦中', 'Spectating') : L('ゴーストで走行中（他の人には見えません）', 'Ghost run (the others can\'t see you)')} — ${L('次のレースから参加します', 'you join the next race')}</div>
+    <div class="sp-row">${watch ? `<button data-d="-1">◀</button><div class="sp-who">${o ? `<i style="background:${hex(o.col)}"></i>${flag(o.cc)}<b>${esc(showName(o.name))}</b><span>${l.indexOf(o) + 1}${L('位', 'th')}</span>` : L('レーサーを待っています…', 'waiting for racers…')}</div><button data-d="1">▶</button>` : ''}
+      <button class="sp-mode" data-m="${watch ? 'ghost' : 'watch'}">${watch ? L('ゴーストで走る', 'Ghost run') : L('観戦する', 'Watch')}</button></div>`;
+  if (h === specHtml && !force && !bar.classList.contains('hidden')) return;
+  specHtml = h; bar.innerHTML = h; bar.classList.remove('hidden');
+  for (const b of bar.querySelectorAll('button[data-d]')) b.onclick = (e) => { e.currentTarget.blur(); specNext(+b.dataset.d); };
+  const mb = bar.querySelector('.sp-mode'); mb.onclick = (e) => { e.currentTarget.blur(); setSpecMode(mb.dataset.m); };
+}
 
 // recording of my run (for the replay of a ranked time): REC_HZ frames of [t ms, x, y, z (cm), quaternion (x1000), speed (x10), flags]
 const REC_HZ = 10;
@@ -758,6 +817,8 @@ function frameRest(now, dt) {
   recordFrame(dt);
   // my model
   if (myModel) {
+    myModel.root.visible = !spectating();
+    setGhostLook(lateJoin() && spec.mode === 'ghost');
     myModel.root.position.copy(me.pos); myModel.root.quaternion.copy(me.quat);
     myModel.anim(dt, me.speed, me.mode === 'air', me.boosting, me.thrust, me.lift, me.sonic > 0);
     updateTrails(myTrail, myModel, Math.min(1, me.speed / 90) * (me.boosting ? 1.4 : 0.8));
@@ -770,7 +831,7 @@ function frameRest(now, dt) {
       sendT = 1 / 15;
       const r2 = (v) => Math.round(v * 100) / 100, r3 = (v) => Math.round(v * 1000) / 1000;
       const p = [r2(me.pos.x), r2(me.pos.y), r2(me.pos.z), r3(me.quat.x), r3(me.quat.y), r3(me.quat.z), r3(me.quat.w), r2(me.speed), (me.boosting ? 1 : 0) | (me.mode === 'air' ? 2 : 0) | (me.sonic > 0 ? 4 : 0)];
-      if (p.every(Number.isFinite)) session.sendPose(p, me.respawned);
+      if (p.every(Number.isFinite) && !lateJoin()) session.sendPose(p, me.respawned);
       me.respawned = false;
     }
     // others: interpolate
@@ -827,6 +888,12 @@ function frameRest(now, dt) {
       for (const o of session.others.values()) if (o.racing !== false) rows.push({ fin: o.fin, d: o.dist || 0 });
       rows.sort((a, b) => (a.fin ?? Infinity) - (b.fin ?? Infinity) || b.d - a.d);
       $('#h-pos').innerHTML = racing ? `${rows.findIndex((r) => r.me) + 1}<small>/${rows.length}</small>` : '-<small></small>';
+      if (spectating()) {   // the HUD follows the racer you're watching
+        const L2 = specList(), o = L2.find((q) => q.id === spec.id);
+        if (o) { $('#h-pos').innerHTML = `${L2.indexOf(o) + 1}<small>/${L2.length}</small>`; $('#h-lap span').textContent = o.fin != null ? 'FINISH' : `${Math.min(session.laps, (o.lap || 0) + 1)}/${session.laps}`; }
+        $('#h-time').textContent = fmt(session.phase === 'race' ? sn - session.startAt : 0);
+      }
+      renderSpecBar();
       $('#h-lap span').textContent = session.me.fin !== null ? 'FINISH' : `${Math.min(session.laps, session.me.lap + 1)}/${session.laps}`;
       $('#h-time').textContent = fmt(session.me.fin ?? (session.phase === 'race' ? sn - session.startAt : 0));
       $('#h-best').textContent = 'BEST LAP ' + fmt(myProg.best);

@@ -173,3 +173,15 @@ dl.cr dt{color:var(--dim);font-size:11px;letter-spacing:.04em}dl.cr dd{margin:0 
 .cr-fan{margin:0 0 10px;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.05);font-size:12px;line-height:1.6;color:var(--ink)}
 #stages button .on-n{font:700 10px "Noto Sans JP";font-style:normal;color:#2ee59d;margin-left:3px;white-space:nowrap}
 .p-row input:disabled{opacity:.55;cursor:not-allowed}
+/* spectating */
+#spec{position:fixed;left:50%;bottom:max(18px,env(safe-area-inset-bottom));transform:translateX(-50%);z-index:14;display:flex;flex-direction:column;align-items:center;gap:6px;width:min(460px,calc(100% - 24px))}
+#spec .sp-t{font:700 11px "Noto Sans JP";color:var(--gold);text-shadow:0 1px 6px rgba(0,0,0,.7)}
+#spec .sp-row{display:flex;align-items:center;justify-content:center;gap:8px;width:100%}
+#spec .sp-mode{width:auto;padding:0 14px;font:700 13px "Noto Sans JP";border-color:var(--cyan)}
+#spec button{flex:none;width:48px;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--glass);color:var(--ink);font-size:16px;cursor:pointer;backdrop-filter:blur(8px)}
+#spec .sp-who{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:7px;height:44px;padding:0 12px;border-radius:12px;background:var(--glass);border:1px solid var(--line);backdrop-filter:blur(8px)}
+#spec .sp-who i{flex:none;width:12px;height:12px;border-radius:50%}
+#spec .sp-who b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#spec .sp-who span{font:700 16px Rajdhani;color:var(--gold)}
+body.touch #spec{bottom:calc(max(18px,env(safe-area-inset-bottom)) + 150px)}
+#hud.spectating #b-jet,#hud.spectating #nitro,#hud.spectating #ebar,#hud.spectating .elbl,#hud.spectating #stick,#hud.spectating #h-best{display:none!important}
