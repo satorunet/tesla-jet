@@ -470,7 +470,7 @@ function otherStages() {
 }
 function bestHtml() {
   const b = session.best; if (!b || (!b.race?.length && !b.lap?.length)) return '';
-  const li = (l) => l.slice(0, 5).map((r, i) => `<li><span class="rk">${i + 1}</span>${flag(r.cc)}<span class="nm">${esc(r.name)}${r.msg ? `<q>${esc(r.msg)}</q>` : ''}</span><span class="tm">${fmt(r.time)}</span></li>`).join('');
+  const li = (l) => l.slice(0, 5).map((r, i) => `<li><span class="rk">${i + 1}</span><span class="tm">${fmt(r.time)}</span>${flag(r.cc)}<span class="nm">${esc(r.name)}${r.msg ? `<q title="${esc(r.msg)}">${esc(r.msg)}</q>` : ''}</span></li>`).join('');
   return `<div class="p-cols"><div><div class="p-bt">${L('レース', 'RACE')}</div><ul class="p-list">${li(b.race || [])}</ul></div><div><div class="p-bt">${L('ベストラップ', 'BEST LAP')}</div><ul class="p-list">${li(b.lap || [])}</ul></div></div>`;
 }
 
@@ -804,7 +804,7 @@ async function openRanks() {
     const rows = list[ranksKind] || [];
     box.innerHTML = `<div class="rk-card"><div class="rk-h">${STAGES[stage].name} ${L('ランキング', 'RANKING')}</div>
       <div class="rk-tabs"><button data-k="race" class="${ranksKind === 'race' ? 'on' : ''}">${L('レース', 'RACE')}</button><button data-k="lap" class="${ranksKind === 'lap' ? 'on' : ''}">${L('ベストラップ', 'BEST LAP')}</button></div>
-      <ul class="p-list rk-list">${rows.map((e, i) => `<li><span class="rk">${i + 1}</span>${flag(e.cc)}<span class="nm">${esc(e.name)}${e.msg ? `<q>${esc(e.msg)}</q>` : ''}</span><span class="tm">${fmt(e.time)}</span>${e.rid ? `<button class="rk-play" data-r="${esc(e.rid)}" title="replay">▶</button><button class="rk-link" data-r="${esc(e.rid)}" title="link">LINK</button>` : '<span class="rk-play off"></span><span class="rk-link off"></span>'}</li>`).join('') || `<li class="dim">${L('まだ記録なし', 'no records yet')}</li>`}</ul>
+      <ul class="p-list rk-list">${rows.map((e, i) => `<li><span class="rk">${i + 1}</span><span class="tm">${fmt(e.time)}</span>${flag(e.cc)}<span class="nm">${esc(e.name)}${e.msg ? `<q title="${esc(e.msg)}">${esc(e.msg)}</q>` : ''}</span>${e.rid ? `<button class="rk-play" data-r="${esc(e.rid)}" title="replay">▶</button><button class="rk-link" data-r="${esc(e.rid)}" title="link">LINK</button>` : '<span class="rk-play off"></span><span class="rk-link off"></span>'}</li>`).join('') || `<li class="dim">${L('まだ記録なし', 'no records yet')}</li>`}</ul>
       <button class="p-x" id="rk-x">×</button></div>`;
     $('#rk-x').onclick = () => box.classList.add('hidden');
     for (const b of box.querySelectorAll('.rk-tabs button')) b.onclick = () => { ranksKind = b.dataset.k; draw(); };

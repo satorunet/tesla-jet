@@ -132,7 +132,8 @@ body.touch #nitro.on{transform:scale(.94);filter:brightness(1.5)}
 #stage-best .tm{font:700 15px Rajdhani;font-variant-numeric:tabular-nums}
 #stage-best .nm{font-weight:700}#stage-best .dim{color:var(--dim);font-weight:500}
 #stage-best q,.p-list q{color:var(--dim);font-size:11px;quotes:"「" "」"}
-.p-list .nm q{display:block;overflow:hidden;text-overflow:ellipsis}
+.p-list .nm q{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rk-list .tm,.p-cols .tm{min-width:62px}
 .flag{vertical-align:-2px;border-radius:2px}
 #record{position:fixed;inset:0;z-index:30;display:grid;place-items:center;padding:16px;background:rgba(10,4,20,.55)}
 .rc-card{width:min(380px,100%);padding:20px;border-radius:18px;background:rgba(22,10,42,.94);border:1px solid rgba(255,200,74,.5);box-shadow:0 0 40px rgba(255,200,74,.25);display:grid;gap:12px}
@@ -185,3 +186,4 @@ dl.cr dt{color:var(--dim);font-size:11px;letter-spacing:.04em}dl.cr dd{margin:0 
 #spec .sp-who span{font:700 16px Rajdhani;color:var(--gold)}
 body.touch #spec{bottom:calc(max(18px,env(safe-area-inset-bottom)) + 150px)}
 #hud.spectating #b-jet,#hud.spectating #nitro,#hud.spectating #ebar,#hud.spectating .elbl,#hud.spectating #stick,#hud.spectating #h-best{display:none!important}
+#stage-best q,#rp-info q{display:inline-block;max-width:16em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom}
