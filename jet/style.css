@@ -187,3 +187,4 @@ dl.cr dt{color:var(--dim);font-size:11px;letter-spacing:.04em}dl.cr dd{margin:0 
 body.touch #spec{bottom:calc(max(18px,env(safe-area-inset-bottom)) + 150px)}
 #hud.spectating #b-jet,#hud.spectating #nitro,#hud.spectating #ebar,#hud.spectating .elbl,#hud.spectating #stick,#hud.spectating #h-best{display:none!important}
 #stage-best q,#rp-info q{display:inline-block;max-width:16em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom}
+.rk-link svg,.rp-btns svg{display:block;margin:auto}
