@@ -2,7 +2,7 @@
 
 ジェットで浮かぶテスラの次世代レース — a browser racing game where a hovering Tesla flies round sky circuits on jets.
 
-**Play:** https://satoru.net/tesra/jet/
+**Play:** https://jet-racer.satoru.net/
 
 > 本作はテスラ社（Tesla, Inc.）の**非公式ファンゲーム**です。テスラ社とは関係ありません。
 > An unofficial Tesla fan game. Not affiliated with or endorsed by Tesla, Inc.
